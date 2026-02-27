@@ -15,7 +15,7 @@ class AuthRepository {
   final M3tApiClient _apiClient;
   final FlutterSecureStorage _secureStorage;
 
-  static const _tokenKey = 'auth_token';
+  static const tokenKey = 'auth_token';
 
   final _statusController = StreamController<AuthStatus>.broadcast();
 
@@ -42,17 +42,17 @@ class AuthRepository {
       email: email,
       code: code,
     );
-    await _secureStorage.write(key: _tokenKey, value: response.token);
+    await _secureStorage.write(key: tokenKey, value: response.token);
     _statusController.add(AuthStatus.authenticated);
     return response;
   }
 
   /// Returns the persisted JWT, or `null` if none is stored.
-  Future<String?> getToken() => _secureStorage.read(key: _tokenKey);
+  Future<String?> getToken() => _secureStorage.read(key: tokenKey);
 
   /// Deletes the stored token and emits [AuthStatus.unauthenticated].
   Future<void> logout() async {
-    await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: tokenKey);
     _statusController.add(AuthStatus.unauthenticated);
   }
 

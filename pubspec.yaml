@@ -41,6 +41,7 @@ dependencies:
     path: packages/m3t_api
   auth_repository:
     path: packages/auth_repository
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:

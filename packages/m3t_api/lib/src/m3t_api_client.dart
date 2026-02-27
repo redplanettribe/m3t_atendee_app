@@ -23,24 +23,41 @@ class VerifyLoginCodeFailure implements Exception {
   String toString() => 'VerifyLoginCodeFailure($message)';
 }
 
+/// Signature for a callback that returns the stored auth token (or null).
+typedef TokenProvider = Future<String?> Function();
+
 class M3tApiClient {
   M3tApiClient({
     http.Client? httpClient,
     String? baseUrl,
+    TokenProvider? tokenProvider,
   })  : _httpClient = httpClient ?? http.Client(),
-        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080';
+        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
+        _tokenProvider = tokenProvider;
 
   final http.Client _httpClient;
   final String _baseUrl;
+  final TokenProvider? _tokenProvider;
 
   Uri _uri(String path) => Uri.parse('$_baseUrl$path');
+
+  Map<String, String> get _jsonHeaders => {
+        'content-type': 'application/json',
+      };
+
+  Future<Map<String, String>> _authHeaders() async {
+    final headers = Map<String, String>.of(_jsonHeaders);
+    final token = await _tokenProvider?.call();
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
 
   Future<void> requestLoginCode(String email) async {
     final response = await _httpClient.post(
       _uri('/auth/login/request'),
-      headers: <String, String>{
-        'content-type': 'application/json',
-      },
+      headers: _jsonHeaders,
       body: jsonEncode(<String, String>{'email': email}),
     );
 
@@ -64,9 +81,7 @@ class M3tApiClient {
   }) async {
     final response = await _httpClient.post(
       _uri('/auth/login/verify'),
-      headers: <String, String>{
-        'content-type': 'application/json',
-      },
+      headers: _jsonHeaders,
       body: jsonEncode(<String, String>{
         'email': email,
         'code': code,
