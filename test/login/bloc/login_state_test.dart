@@ -20,10 +20,7 @@ void main() {
     }
 
     test('supports value equality', () {
-      expect(
-        createSubject(),
-        equals(createSubject()),
-      );
+      expect(createSubject(), equals(createSubject()));
     });
 
     test('props are correct', () {
@@ -45,30 +42,38 @@ void main() {
 
     group('copyWith', () {
       test('returns the same object if no arguments are provided', () {
+        expect(createSubject().copyWith(), equals(createSubject()));
+      });
+
+      test('retains existing errorMessage when errorMessage is not passed', () {
+        final subject = createSubject(errorMessage: 'existing error');
         expect(
-          createSubject().copyWith(),
+          subject.copyWith(status: .loading),
+          equals(
+            createSubject(
+              status: .loading,
+              errorMessage: 'existing error',
+            ),
+          ),
+        );
+      });
+
+      test('clears errorMessage when null is explicitly passed', () {
+        final subject = createSubject(errorMessage: 'existing error');
+        expect(
+          subject.copyWith(errorMessage: null),
           equals(createSubject()),
         );
       });
 
-      test(
-        'retains the old value for every parameter if null is provided',
-        () {
-          expect(
-            createSubject().copyWith(),
-            equals(createSubject()),
-          );
-        },
-      );
-
       test('replaces every non-null parameter', () {
         expect(
           createSubject().copyWith(
-            step: () => .codeVerification,
-            status: () => .success,
-            email: () => 'new@example.com',
-            code: () => '654321',
-            errorMessage: () => 'new error',
+            step: .codeVerification,
+            status: .success,
+            email: 'new@example.com',
+            code: '654321',
+            errorMessage: 'new error',
           ),
           equals(
             createSubject(
