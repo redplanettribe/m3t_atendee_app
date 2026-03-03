@@ -57,10 +57,19 @@ dev_dependencies:
   json_annotation: ^4.11.0
   mocktail: ^1.0.4
   build_runner: ^2.11.1
-  
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# Flutter Launcher Icons - generates app icons from assets/icon
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true # Required by Apple (no transparent backgrounds)
+  image_path: "assets/icon/icon_master.png" # 1024x1024 source
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -69,6 +78,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/icon/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
