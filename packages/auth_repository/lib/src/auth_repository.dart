@@ -47,6 +47,11 @@ class AuthRepository {
     return response;
   }
 
+  /// Fetches the authenticated user's profile using the stored token.
+  Future<User> getCurrentUser() {
+    return _apiClient.getCurrentUser();
+  }
+
   /// Returns the persisted JWT, or `null` if none is stored.
   Future<String?> getToken() => _secureStorage.read(key: tokenKey);
 

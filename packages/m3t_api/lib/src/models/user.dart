@@ -12,6 +12,7 @@ class User extends Equatable {
     this.lastName,
     this.createdAt,
     this.updatedAt,
+    this.profilePictureUrl,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class User extends Equatable {
   final String? lastName;
   final String? createdAt;
   final String? updatedAt;
+   final String? profilePictureUrl;
 
   User copyWith({
     String? id,
@@ -28,6 +30,7 @@ class User extends Equatable {
     String? lastName,
     String? createdAt,
     String? updatedAt,
+    String? profilePictureUrl,
   }) {
     return User(
       id: id ?? this.id,
@@ -36,6 +39,7 @@ class User extends Equatable {
       lastName: lastName ?? this.lastName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
     );
   }
 
@@ -44,6 +48,7 @@ class User extends Equatable {
   Map<String, dynamic> toJson() => _$UserToJson(this);
 
   @override
-  List<Object?> get props => [id, email, name, lastName, createdAt, updatedAt];
+  List<Object?> get props =>
+      [id, email, name, lastName, createdAt, updatedAt, profilePictureUrl];
 }
 

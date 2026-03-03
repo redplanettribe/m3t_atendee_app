@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'models/api_error.dart';
 import 'models/login_response.dart';
+import 'models/user.dart';
 
 class RequestLoginCodeFailure implements Exception {
   RequestLoginCodeFailure(this.message);
@@ -107,6 +108,31 @@ class M3tApiClient {
     }
 
     return LoginResponse.fromJson(dataJson);
+  }
+
+  Future<User> getCurrentUser() async {
+    final response = await _httpClient.get(
+      _uri('/users/me'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Request failed with status ${response.statusCode}');
+    }
+
+    final body = _decodeJson(response.body);
+    final errorJson = body['error'] as Map<String, dynamic>?;
+    if (errorJson != null) {
+      final error = ApiError.fromJson(errorJson);
+      throw Exception(error.message);
+    }
+
+    final dataJson = body['data'] as Map<String, dynamic>?;
+    if (dataJson == null) {
+      throw const FormatException('Missing data field in response');
+    }
+
+    return User.fromJson(dataJson);
   }
 
   Map<String, dynamic> _decodeJson(String source) {
