@@ -1,15 +1,25 @@
-import 'package:auth_repository/auth_repository.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'dart:async' show unawaited;
+
+import 'package:domain/domain.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:m3t_attendee/app/bloc/auth_bloc.dart';
+import 'package:m3t_attendee/app/router.dart';
+import 'package:m3t_attendee/home/home.dart';
 import 'package:m3t_attendee/login/login.dart';
 import 'package:m3t_attendee/user/user_cubit.dart';
 import 'package:m3t_attendee/user/view/update_user_page.dart';
-import 'package:m3t_api/m3t_api.dart';
 
-/// Resolves image URLs for the current platform. On Android, replaces
-/// `localhost` with `10.0.2.2` so the emulator can reach the host machine.
+// ---------------------------------------------------------------------------
+// File-level helpers (view-layer utilities — no business logic)
+// ---------------------------------------------------------------------------
+
+/// Resolves image URLs for the current platform.
+/// On Android, swaps `localhost` for `10.0.2.2` so the emulator can reach
+/// the host machine.
 String? _resolveImageUrl(String? url) {
   if (url == null || url.isEmpty) return url;
   if (defaultTargetPlatform == TargetPlatform.android &&
@@ -19,8 +29,8 @@ String? _resolveImageUrl(String? url) {
   return url;
 }
 
-/// Returns initials for [user] (e.g. from name + lastName or email), or '?' if none.
-String _userInitials(User? user) {
+/// Returns up-to-two-character initials for [user], or '?' when unavailable.
+String _userInitials(AuthUser? user) {
   if (user == null) return '?';
   final name = user.name?.trim();
   final lastName = user.lastName?.trim();
@@ -45,59 +55,70 @@ String _userInitials(User? user) {
   return '?';
 }
 
-class App extends StatelessWidget {
-  const App({
-    required AuthRepository authRepository,
-    super.key,
-  }) : _authRepository = authRepository;
+// ---------------------------------------------------------------------------
+// App root
+// ---------------------------------------------------------------------------
+
+/// Root widget. Owns the repository and BLoC composition.
+final class App extends StatelessWidget {
+  const App({required AuthRepository authRepository, super.key})
+    : _authRepository = authRepository;
 
   final AuthRepository _authRepository;
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
+    return RepositoryProvider<AuthRepository>.value(
       value: _authRepository,
-      child: BlocProvider(
-        create: (context) =>
-            UserCubit(context.read<AuthRepository>())..loadCurrentUser(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(authRepository: context.read()),
+          ),
+          BlocProvider<UserCubit>(
+            create: (context) {
+              final cubit = UserCubit(authRepository: context.read());
+              unawaited(cubit.loadCurrentUser());
+              return cubit;
+            },
+          ),
+        ],
         child: const _AppView(),
       ),
     );
   }
 }
 
-class _AppView extends StatefulWidget {
+// ---------------------------------------------------------------------------
+// _AppView (router host)
+// ---------------------------------------------------------------------------
+
+final class _AppView extends StatefulWidget {
   const _AppView();
 
   @override
   State<_AppView> createState() => _AppViewState();
 }
 
-class _AppViewState extends State<_AppView> {
+final class _AppViewState extends State<_AppView> {
   late final GoRouter _router;
-  AuthStatus _authStatus = AuthStatus.unknown;
 
   @override
   void initState() {
     super.initState();
-    final authRepository = context.read<AuthRepository>();
-    authRepository.status.listen((status) {
-      if (mounted) {
-        setState(() => _authStatus = status);
-      }
-    });
+    final authBloc = context.read<AuthBloc>();
 
     _router = GoRouter(
-      refreshListenable: _AuthNotifier(authRepository),
-      redirect: (context, state) {
-        final isOnLogin = state.matchedLocation == '/login';
-        if (_authStatus == AuthStatus.unauthenticated && !isOnLogin) {
-          return '/login';
-        }
-        if (_authStatus == AuthStatus.authenticated && isOnLogin) {
-          return '/';
-        }
-        return null;
+      refreshListenable: GoRouterRefreshStream<AuthState>(authBloc.stream),
+      redirect: (_, routerState) {
+        final authStatus = authBloc.state.status;
+        final isOnLogin = routerState.matchedLocation == '/login';
+
+        return switch (authStatus) {
+          AuthStatus.authenticated when isOnLogin => '/',
+          AuthStatus.unauthenticated when !isOnLogin => '/login',
+          _ => null,
+        };
       },
       routes: [
         GoRoute(
@@ -106,7 +127,7 @@ class _AppViewState extends State<_AppView> {
         ),
         GoRoute(
           path: '/',
-          builder: (context, state) => const _HomePage(),
+          builder: (context, state) => const HomePage(),
         ),
         GoRoute(
           path: '/config',
@@ -133,10 +154,7 @@ class _AppViewState extends State<_AppView> {
     return MaterialApp.router(
       title: 'm3t Attendee',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -149,95 +167,73 @@ class _AppViewState extends State<_AppView> {
   }
 }
 
-/// Converts the [AuthRepository.status] stream into a [ChangeNotifier]
-/// so [GoRouter.refreshListenable] can react to auth changes.
-class _AuthNotifier extends ChangeNotifier {
-  _AuthNotifier(AuthRepository authRepository) {
-    _subscription = authRepository.status.listen((_) {
-      notifyListeners();
-    });
-  }
+// // ---------------------------------------------------------------------------
+// // Home page
+// // ---------------------------------------------------------------------------
 
-  late final dynamic _subscription;
+// class _HomePage extends StatelessWidget {
+//   const _HomePage();
 
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final theme = Theme.of(context);
+//     return Scaffold(
+//       appBar: AppBar(
+//         leadingWidth: 72,
+//         leading: const Padding(
+//           padding: EdgeInsets.only(left: 16),
+//           child: _UserAvatarButton(),
+//         ),
+//       ),
+//       body: Center(
+//         child: Text('Welcome!', style: theme.textTheme.headlineMedium),
+//       ),
+//     );
+//   }
+// }
 
-class _HomePage extends StatelessWidget {
-  const _HomePage();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        leadingWidth: 72,
-        leading: Padding(
-          padding: EdgeInsets.only(left: 16),
-          child: _UserAvatarButton(),
-        ),
-      ),
-      body: Center(
-        child: Text(
-          'Welcome!',
-          style: theme.textTheme.headlineMedium,
-        ),
-      ),
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// User avatar button
+// ---------------------------------------------------------------------------
 
 class _UserAvatarButton extends StatelessWidget {
+  const _UserAvatarButton();
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<UserCubit, UserState>(
       builder: (context, state) {
         final user = state.user;
-        Widget avatar;
         final initials = _userInitials(user);
-        if (user?.profilePictureUrl != null &&
-            user!.profilePictureUrl!.isNotEmpty) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final textStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: colorScheme.onPrimaryContainer,
+          fontWeight: .w600,
+        );
+
+        Widget avatar;
+        final resolvedUrl = _resolveImageUrl(user?.profilePictureUrl);
+        if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
           avatar = CircleAvatar(
             radius: 22,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            backgroundColor: colorScheme.primaryContainer,
             child: ClipOval(
               child: Image.network(
-                _resolveImageUrl(user.profilePictureUrl)!,
+                resolvedUrl,
                 width: 44,
                 height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Center(
-                    child: Text(
-                      initials,
-                      style:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                    ),
-                  );
-                },
+                fit: .cover,
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(initials, style: textStyle),
+                ),
               ),
             ),
           );
         } else {
           avatar = CircleAvatar(
             radius: 22,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Text(
-              initials,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(initials, style: textStyle),
           );
         }
 
@@ -249,6 +245,10 @@ class _UserAvatarButton extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Config page
+// ---------------------------------------------------------------------------
 
 class _ConfigPage extends StatelessWidget {
   const _ConfigPage();
@@ -266,54 +266,47 @@ class _ConfigPage extends StatelessWidget {
               builder: (context, state) {
                 final user = state.user;
                 final initials = _userInitials(user);
-                final avatar = (user?.profilePictureUrl != null &&
-                        user!.profilePictureUrl!.isNotEmpty)
-                    ? CircleAvatar(
-                        radius: 64,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primaryContainer,
-                        child: ClipOval(
-                          child: Image.network(
-                            _resolveImageUrl(user.profilePictureUrl)!,
-                            width: 128,
-                            height: 128,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Text(
-                                  initials,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineLarge
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimaryContainer,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                final colorScheme = Theme.of(context).colorScheme;
+                final resolvedUrl = _resolveImageUrl(user?.profilePictureUrl);
+
+                final Widget avatar;
+                if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
+                  avatar = CircleAvatar(
+                    radius: 64,
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: ClipOval(
+                      child: Image.network(
+                        resolvedUrl,
+                        width: 128,
+                        height: 128,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(
+                          child: Text(
+                            initials,
+                            style: Theme.of(context).textTheme.headlineLarge
+                                ?.copyWith(
+                                  color: colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              );
-                            },
                           ),
                         ),
-                      )
-                    : CircleAvatar(
-                        radius: 64,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primaryContainer,
-                        child: Text(
-                          initials,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineLarge
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      );
+                      ),
+                    ),
+                  );
+                } else {
+                  avatar = CircleAvatar(
+                    radius: 64,
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: Text(
+                      initials,
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  );
+                }
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -322,15 +315,11 @@ class _ConfigPage extends StatelessWidget {
                     const SizedBox(height: 24),
                     ListTile(
                       title: const Text('Update user'),
-                      onTap: () {
-                        context.push('/config/update-user');
-                      },
+                      onTap: () => context.push('/config/update-user'),
                     ),
                     ListTile(
                       title: const Text('Logout'),
-                      onTap: () {
-                        context.read<AuthRepository>().logout();
-                      },
+                      onTap: () => context.read<AuthRepository>().logout(),
                     ),
                   ],
                 );

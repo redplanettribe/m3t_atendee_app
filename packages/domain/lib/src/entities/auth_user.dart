@@ -8,6 +8,7 @@ final class AuthUser extends Equatable {
     this.lastName,
     this.createdAt,
     this.updatedAt,
+    this.profilePictureUrl,
   });
 
   final String id;
@@ -16,6 +17,7 @@ final class AuthUser extends Equatable {
   final String? lastName;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? profilePictureUrl;
 
   AuthUser copyWith({
     String? id,
@@ -24,6 +26,7 @@ final class AuthUser extends Equatable {
     Object? lastName = _sentinel,
     Object? createdAt = _sentinel,
     Object? updatedAt = _sentinel,
+    Object? profilePictureUrl = _sentinel,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -36,11 +39,22 @@ final class AuthUser extends Equatable {
       updatedAt: updatedAt == _sentinel
           ? this.updatedAt
           : updatedAt as DateTime?,
+      profilePictureUrl: profilePictureUrl == _sentinel
+          ? this.profilePictureUrl
+          : profilePictureUrl as String?,
     );
   }
 
   static const _sentinel = Object();
 
   @override
-  List<Object?> get props => [id, email, name, lastName, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    email,
+    name,
+    lastName,
+    createdAt,
+    updatedAt,
+    profilePictureUrl,
+  ];
 }

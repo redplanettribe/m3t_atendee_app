@@ -13,5 +13,6 @@ extension LoginResponseMapper on LoginResponse {
     updatedAt: user.updatedAt != null
         ? DateTime.tryParse(user.updatedAt!)
         : null,
+    profilePictureUrl: user.profilePictureUrl,
   );
 }

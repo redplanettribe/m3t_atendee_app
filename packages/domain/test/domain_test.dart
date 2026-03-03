@@ -47,6 +47,7 @@ void main() {
           'Doe',
           createdAt,
           updatedAt,
+          null, // profilePictureUrl
         ]),
       );
     });

@@ -1,12 +1,11 @@
-// ignore_for_file: prefer_const_constructors, avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3t_attendee/login/login.dart';
 
 void main() {
   group('LoginState', () {
     LoginState createSubject({
-      LoginStep step = LoginStep.emailEntry,
-      LoginStatus status = LoginStatus.initial,
+      LoginStep step = .emailEntry,
+      LoginStatus status = .initial,
       String email = '',
       String code = '',
       String? errorMessage,
@@ -30,8 +29,6 @@ void main() {
     test('props are correct', () {
       expect(
         createSubject(
-          step: LoginStep.emailEntry,
-          status: LoginStatus.initial,
           email: 'test@example.com',
           code: '123456',
           errorMessage: 'error',
@@ -58,13 +55,7 @@ void main() {
         'retains the old value for every parameter if null is provided',
         () {
           expect(
-            createSubject().copyWith(
-              step: null,
-              status: null,
-              email: null,
-              code: null,
-              errorMessage: null,
-            ),
+            createSubject().copyWith(),
             equals(createSubject()),
           );
         },
@@ -73,16 +64,16 @@ void main() {
       test('replaces every non-null parameter', () {
         expect(
           createSubject().copyWith(
-            step: () => LoginStep.codeVerification,
-            status: () => LoginStatus.success,
+            step: () => .codeVerification,
+            status: () => .success,
             email: () => 'new@example.com',
             code: () => '654321',
             errorMessage: () => 'new error',
           ),
           equals(
             createSubject(
-              step: LoginStep.codeVerification,
-              status: LoginStatus.success,
+              step: .codeVerification,
+              status: .success,
               email: 'new@example.com',
               code: '654321',
               errorMessage: 'new error',

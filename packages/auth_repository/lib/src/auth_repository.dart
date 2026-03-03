@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auth_repository/src/mappers/login_response_mapper.dart';
+import 'package:auth_repository/src/mappers/user_mapper.dart';
 import 'package:auth_repository/src/ports/token_storage.dart';
 import 'package:domain/domain.dart';
 import 'package:m3t_api/m3t_api.dart';
@@ -9,8 +10,8 @@ final class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required M3tApiClient apiClient,
     required TokenStorage tokenStorage,
-  })  : _apiClient = apiClient,
-        _tokenStorage = tokenStorage;
+  }) : _apiClient = apiClient,
+       _tokenStorage = tokenStorage;
 
   final M3tApiClient _apiClient;
   final TokenStorage _tokenStorage;
@@ -33,10 +34,9 @@ final class AuthRepositoryImpl implements AuthRepository {
   Future<void> initialize() async {
     try {
       final token = await _tokenStorage.read();
-      _currentStatus =
-          token != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+      _currentStatus = token != null ? .authenticated : .unauthenticated;
     } on Exception catch (_) {
-      _currentStatus = AuthStatus.unauthenticated;
+      _currentStatus = .unauthenticated;
     }
     _emitStatus(_currentStatus);
   }
@@ -69,7 +69,7 @@ final class AuthRepositoryImpl implements AuthRepository {
       _currentUser = user;
 
       await _tokenStorage.write(response.token);
-      _emitStatus(AuthStatus.authenticated);
+      _emitStatus(.authenticated);
 
       return user;
     } on VerifyLoginCodeFailure catch (_) {
@@ -80,44 +80,52 @@ final class AuthRepositoryImpl implements AuthRepository {
   }
 
   // ---------------------------------------------------------------------------
-  // User profile — not part of the AuthRepository interface.
-  // TODO(team): extract to a dedicated UserRepository bounded context.
+  // ---------------------------------------------------------------------------
+  // User profile
   // ---------------------------------------------------------------------------
 
   /// Fetches the authenticated user's profile.
-  Future<User> getCurrentUser() => _apiClient.getCurrentUser();
+  @override
+  Future<AuthUser> getCurrentUser() async =>
+      (await _apiClient.getCurrentUser()).toDomain();
 
   /// Updates the authenticated user's profile.
   ///
   /// At least one of [name] or [lastName] must be provided.
-  Future<User> updateCurrentUser({
+  @override
+  Future<AuthUser> updateCurrentUser({
     String? name,
     String? lastName,
-  }) =>
-      _apiClient.updateCurrentUser(name: name, lastName: lastName);
+  }) async {
+    final result = await _apiClient.updateCurrentUser(
+      name: name,
+      lastName: lastName,
+    );
+    return result.toDomain();
+  }
 
   /// Requests a presigned S3 upload URL and object key for the user's avatar.
+  @override
   Future<(Uri uploadUrl, String key)> requestAvatarUpload() =>
       _apiClient.requestAvatarUploadUrl();
 
   /// Uploads avatar [bytes] directly to [uploadUrl].
+  @override
   Future<void> uploadAvatar({
     required Uri uploadUrl,
     required List<int> bytes,
     required String contentType,
-  }) =>
-      _apiClient.uploadAvatarBytes(
-        uploadUrl: uploadUrl,
-        bytes: bytes,
-        contentType: contentType,
-      );
+  }) => _apiClient.uploadAvatarBytes(
+    uploadUrl: uploadUrl,
+    bytes: bytes,
+    contentType: contentType,
+  );
 
-  /// Confirms the uploaded avatar with the backend and returns the updated user.
-  Future<User> confirmAvatar({required String key}) =>
-      _apiClient.confirmAvatar(key: key);
-
-  /// Returns the persisted JWT, or null if none is stored.
-  Future<String?> getToken() => _tokenStorage.read();
+  /// Confirms the uploaded avatar with the backend and
+  /// returns the updated user.
+  @override
+  Future<AuthUser> confirmAvatar({required String key}) async =>
+      (await _apiClient.confirmAvatar(key: key)).toDomain();
 
   // ---------------------------------------------------------------------------
   // Auth lifecycle
@@ -128,7 +136,7 @@ final class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     _currentUser = null;
     await _tokenStorage.delete();
-    _emitStatus(AuthStatus.unauthenticated);
+    _emitStatus(.unauthenticated);
   }
 
   /// Closes the internal stream controller.

@@ -44,11 +44,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         step: () => LoginStep.codeVerification,
         status: () => LoginStatus.initial,
       ));
-    } catch (error, stackTrace) {
+    } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       emit(state.copyWith(
         status: () => LoginStatus.failure,
-        errorMessage: () => error.toString(),
+        errorMessage: error.toString,
       ));
     }
   }
@@ -79,11 +79,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         code: state.code,
       );
       emit(state.copyWith(status: () => LoginStatus.success));
-    } catch (error, stackTrace) {
+    } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       emit(state.copyWith(
         status: () => LoginStatus.failure,
-        errorMessage: () => error.toString(),
+        errorMessage: error.toString,
       ));
     }
   }

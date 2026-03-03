@@ -1,10 +1,13 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'dart:async' show unawaited;
+
+import 'package:domain/domain.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:m3t_attendee/user/user_cubit.dart';
-import 'package:m3t_api/m3t_api.dart';
 
 String? _resolveImageUrl(String? url) {
   if (url == null || url.isEmpty) return url;
@@ -15,7 +18,7 @@ String? _resolveImageUrl(String? url) {
   return url;
 }
 
-String _userInitials(User? user) {
+String _userInitials(AuthUser? user) {
   if (user == null) return '?';
   final name = user.name?.trim();
   final lastName = user.lastName?.trim();
@@ -40,14 +43,14 @@ String _userInitials(User? user) {
   return '?';
 }
 
-class UpdateUserPage extends StatefulWidget {
+final class UpdateUserPage extends StatefulWidget {
   const UpdateUserPage({super.key});
 
   @override
   State<UpdateUserPage> createState() => _UpdateUserPageState();
 }
 
-class _UpdateUserPageState extends State<UpdateUserPage> {
+final class _UpdateUserPageState extends State<UpdateUserPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _lastNameController;
   late final ImagePicker _picker;
@@ -68,7 +71,7 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
     super.dispose();
   }
 
-  Future<void> _onSavePressed(BuildContext context) async {
+  Future<void> _onSavePressed() async {
     final userCubit = context.read<UserCubit>();
     await userCubit.updateProfile(
       name: _nameController.text.trim().isEmpty
@@ -80,90 +83,83 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
     );
 
     final state = userCubit.state;
-    if (mounted) {
-      if (state.errorMessage != null) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage!),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-      } else {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-      }
+    if (!mounted) return;
+    if (state.errorMessage != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(state.errorMessage!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } else {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
     }
   }
 
-  void _showImageSourceBottomSheet(BuildContext context) {
-    final rootContext = context;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _pickImageAndUpload(rootContext, ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take photo'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _pickImageAndUpload(rootContext, ImageSource.camera);
-              },
-            ),
-          ],
+  void _showImageSourceBottomSheet() {
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  unawaited(_pickImageAndUpload(ImageSource.gallery));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take photo'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  unawaited(_pickImageAndUpload(ImageSource.camera));
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _pickImageAndUpload(
-    BuildContext context,
-    ImageSource source,
-  ) async {
+  Future<void> _pickImageAndUpload(ImageSource source) async {
+    final userCubit = context.read<UserCubit>();
     try {
       final picked = await _picker.pickImage(source: source);
       if (picked == null) return;
 
       final bytes = await picked.readAsBytes();
       if (bytes.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not read image. Please try again.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not read image. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         return;
       }
 
-      final path = (picked.name).toLowerCase();
+      final path = picked.name.toLowerCase();
       final contentType = source == ImageSource.camera
           ? 'image/jpeg'
           : (path.endsWith('.png') ? 'image/png' : 'image/jpeg');
 
-      final userCubit = context.read<UserCubit>();
-      await userCubit.updateAvatar(
-        bytes: bytes,
-        contentType: contentType,
-      );
+      await userCubit.updateAvatar(bytes: bytes, contentType: contentType);
 
       final state = userCubit.state;
       if (mounted && state.errorMessage != null) {
@@ -186,14 +182,14 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
             content: Text(
               isChannelError
                   ? 'Photo picker unavailable on emulator. '
-                    'Stop the app and run again (full restart), or try on a device.'
+                      'Stop app and do a full restart, or try on device.'
                   : 'Could not open photo picker: ${e.message ?? e.code}',
             ),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 5),
           ),
         );
-    } catch (e) {
+    } on Object catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -209,9 +205,7 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update profile'),
-      ),
+      appBar: AppBar(title: const Text('Update profile')),
       body: BlocBuilder<UserCubit, UserState>(
         builder: (context, state) {
           final user = state.user;
@@ -265,12 +259,11 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
                       onTap: state.updatingAvatar
                           ? () {}
-                          : () => _showImageSourceBottomSheet(context),
+                          : _showImageSourceBottomSheet,
                       child: Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -278,7 +271,7 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                           if (state.updatingAvatar)
                             Positioned.fill(
                               child: Container(
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: Colors.black26,
                                   shape: BoxShape.circle,
                                 ),
@@ -337,11 +330,10 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                     SizedBox(
                       width: double.infinity,
                       child: TextField(
-                        controller:
-                            TextEditingController(text: user?.email ?? ''),
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
+                        controller: TextEditingController(
+                          text: user?.email ?? '',
                         ),
+                        decoration: const InputDecoration(labelText: 'Email'),
                         enabled: false,
                       ),
                     ),
@@ -351,7 +343,7 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                       child: ElevatedButton(
                         onPressed: state.updatingProfile
                             ? null
-                            : () => _onSavePressed(context),
+                            : _onSavePressed,
                         child: state.updatingProfile
                             ? const SizedBox(
                                 width: 18,
@@ -373,4 +365,3 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
     );
   }
 }
-

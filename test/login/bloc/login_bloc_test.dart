@@ -1,7 +1,8 @@
-import 'package:auth_repository/auth_repository.dart';
 import 'package:bloc_test/bloc_test.dart';
+import 'package:domain/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3t_api/m3t_api.dart';
+import 'package:m3t_api/m3t_api.dart'
+    show RequestLoginCodeFailure, VerifyLoginCodeFailure;
 import 'package:m3t_attendee/login/login.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -13,22 +14,19 @@ void main() {
 
     const testEmail = 'test@example.com';
     const testCode = '123456';
-    const testLoginResponse = LoginResponse(
-      token: 'jwt-token',
-      tokenType: 'bearer',
-      user: User(id: '1', email: testEmail),
-    );
+    const testUser = AuthUser(id: '1', email: testEmail);
 
     setUp(() {
       authRepository = MockAuthRepository();
-      when(() => authRepository.requestLoginCode(any()))
-          .thenAnswer((_) async {});
+      when(
+        () => authRepository.requestLoginCode(any()),
+      ).thenAnswer((_) async {});
       when(
         () => authRepository.verifyLoginCode(
           email: any(named: 'email'),
           code: any(named: 'code'),
         ),
-      ).thenAnswer((_) async => testLoginResponse);
+      ).thenAnswer((_) async => testUser);
     });
 
     LoginBloc buildBloc() {
@@ -39,10 +37,7 @@ void main() {
       test('works properly', () => expect(buildBloc, returnsNormally));
 
       test('has correct initial state', () {
-        expect(
-          buildBloc().state,
-          equals(const LoginState()),
-        );
+        expect(buildBloc().state, equals(const LoginState()));
       });
     });
 
@@ -51,9 +46,7 @@ void main() {
         'emits state with updated email',
         build: buildBloc,
         act: (bloc) => bloc.add(const LoginEmailChanged(testEmail)),
-        expect: () => const <LoginState>[
-          LoginState(email: testEmail),
-        ],
+        expect: () => const <LoginState>[LoginState(email: testEmail)],
       );
     });
 
@@ -64,44 +57,33 @@ void main() {
         seed: () => const LoginState(email: testEmail),
         act: (bloc) => bloc.add(const LoginCodeRequested()),
         expect: () => const <LoginState>[
+          LoginState(email: testEmail, status: .loading),
           LoginState(
             email: testEmail,
-            status: LoginStatus.loading,
-          ),
-          LoginState(
-            email: testEmail,
-            step: LoginStep.codeVerification,
-            status: LoginStatus.initial,
+            step: .codeVerification,
           ),
         ],
         verify: (_) {
-          verify(
-            () => authRepository.requestLoginCode(testEmail),
-          ).called(1);
+          verify(() => authRepository.requestLoginCode(testEmail)).called(1);
         },
       );
 
       blocTest<LoginBloc, LoginState>(
         'emits [loading, failure] when request fails',
         setUp: () {
-          when(() => authRepository.requestLoginCode(any()))
-              .thenThrow(
-            RequestLoginCodeFailure('bad_request'),
-          );
+          when(
+            () => authRepository.requestLoginCode(any()),
+          ).thenThrow(RequestLoginCodeFailure('bad_request'));
         },
         build: buildBloc,
         seed: () => const LoginState(email: testEmail),
         act: (bloc) => bloc.add(const LoginCodeRequested()),
         expect: () => <LoginState>[
-          const LoginState(
-            email: testEmail,
-            status: LoginStatus.loading,
-          ),
+          const LoginState(email: testEmail, status: .loading),
           LoginState(
             email: testEmail,
-            status: LoginStatus.failure,
-            errorMessage:
-                RequestLoginCodeFailure('bad_request').toString(),
+            status: .failure,
+            errorMessage: RequestLoginCodeFailure('bad_request').toString(),
           ),
         ],
       );
@@ -113,13 +95,13 @@ void main() {
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
         ),
         act: (bloc) => bloc.add(const LoginCodeChanged(testCode)),
         expect: () => const <LoginState>[
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
           ),
         ],
@@ -132,22 +114,22 @@ void main() {
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginCodeSubmitted()),
         expect: () => const <LoginState>[
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.loading,
+            status: .loading,
           ),
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.success,
+            status: .success,
           ),
         ],
         verify: (_) {
@@ -168,31 +150,28 @@ void main() {
               email: any(named: 'email'),
               code: any(named: 'code'),
             ),
-          ).thenThrow(
-            VerifyLoginCodeFailure('unauthorized'),
-          );
+          ).thenThrow(VerifyLoginCodeFailure('unauthorized'));
         },
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginCodeSubmitted()),
         expect: () => <LoginState>[
           const LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.loading,
+            status: .loading,
           ),
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.failure,
-            errorMessage:
-                VerifyLoginCodeFailure('unauthorized').toString(),
+            status: .failure,
+            errorMessage: VerifyLoginCodeFailure('unauthorized').toString(),
           ),
         ],
       );
@@ -204,15 +183,13 @@ void main() {
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginStepBackToEmail()),
         expect: () => const <LoginState>[
           LoginState(
             email: testEmail,
-            step: LoginStep.emailEntry,
-            status: LoginStatus.initial,
           ),
         ],
       );

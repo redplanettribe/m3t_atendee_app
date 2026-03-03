@@ -8,11 +8,9 @@ class LoginForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<LoginBloc, LoginState>(
-      listenWhen: (previous, current) =>
-          previous.status != current.status,
+      listenWhen: (previous, current) => previous.status != current.status,
       listener: (context, state) {
-        if (state.status == LoginStatus.failure &&
-            state.errorMessage != null) {
+        if (state.status == LoginStatus.failure && state.errorMessage != null) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -32,8 +30,7 @@ class LoginForm extends StatelessWidget {
               builder: (context, state) {
                 return switch (state.step) {
                   LoginStep.emailEntry => const _EmailStep(),
-                  LoginStep.codeVerification =>
-                    const _CodeVerificationStep(),
+                  LoginStep.codeVerification => const _CodeVerificationStep(),
                 };
               },
             ),
@@ -71,8 +68,8 @@ class _EmailStepState extends State<_EmailStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLoading = context.select(
-      (LoginBloc bloc) => bloc.state.status == LoginStatus.loading,
+    final isLoading = context.select<LoginBloc, bool>(
+      (bloc) => bloc.state.status == LoginStatus.loading,
     );
 
     return Column(
@@ -116,9 +113,7 @@ class _EmailStepState extends State<_EmailStep> {
           ),
           onSubmitted: (_) {
             if (!isLoading) {
-              context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeRequested());
+              context.read<LoginBloc>().add(const LoginCodeRequested());
             }
           },
         ),
@@ -126,9 +121,7 @@ class _EmailStepState extends State<_EmailStep> {
         FilledButton(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeRequested()),
+              : () => context.read<LoginBloc>().add(const LoginCodeRequested()),
           child: isLoading
               ? const SizedBox.square(
                   dimension: 20,
@@ -147,8 +140,7 @@ class _CodeVerificationStep extends StatefulWidget {
   const _CodeVerificationStep();
 
   @override
-  State<_CodeVerificationStep> createState() =>
-      _CodeVerificationStepState();
+  State<_CodeVerificationStep> createState() => _CodeVerificationStepState();
 }
 
 class _CodeVerificationStepState extends State<_CodeVerificationStep> {
@@ -218,9 +210,7 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
           ),
           onSubmitted: (_) {
             if (!isLoading) {
-              context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeSubmitted());
+              context.read<LoginBloc>().add(const LoginCodeSubmitted());
             }
           },
         ),
@@ -228,9 +218,7 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
         FilledButton(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeSubmitted()),
+              : () => context.read<LoginBloc>().add(const LoginCodeSubmitted()),
           child: isLoading
               ? const SizedBox.square(
                   dimension: 20,
@@ -244,9 +232,8 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
         TextButton.icon(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginStepBackToEmail()),
+              : () =>
+                    context.read<LoginBloc>().add(const LoginStepBackToEmail()),
           icon: const Icon(Icons.arrow_back, size: 18),
           label: const Text('Use a different email'),
         ),
