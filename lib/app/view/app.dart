@@ -257,76 +257,86 @@ class _ConfigPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: Center(
-        child: BlocBuilder<UserCubit, UserState>(
-          builder: (context, state) {
-            final user = state.user;
-            final initials = _userInitials(user);
-            final avatar = (user?.profilePictureUrl != null &&
-                    user!.profilePictureUrl!.isNotEmpty)
-                ? CircleAvatar(
-                    radius: 64,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    child: ClipOval(
-                      child: Image.network(
-                        _resolveImageUrl(user.profilePictureUrl)!,
-                        width: 128,
-                        height: 128,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Text(
-                              initials,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineLarge
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  )
-                : CircleAvatar(
-                    radius: 64,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      initials,
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: BlocBuilder<UserCubit, UserState>(
+              builder: (context, state) {
+                final user = state.user;
+                final initials = _userInitials(user);
+                final avatar = (user?.profilePictureUrl != null &&
+                        user!.profilePictureUrl!.isNotEmpty)
+                    ? CircleAvatar(
+                        radius: 64,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        child: ClipOval(
+                          child: Image.network(
+                            _resolveImageUrl(user.profilePictureUrl)!,
+                            width: 128,
+                            height: 128,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
+                                  initials,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineLarge
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              );
+                            },
                           ),
-                    ),
-                  );
+                        ),
+                      )
+                    : CircleAvatar(
+                        radius: 64,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        child: Text(
+                          initials,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineLarge
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      );
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                avatar,
-                const SizedBox(height: 24),
-                ListTile(
-                  title: const Text('Update user'),
-                  onTap: () {
-                    context.push('/config/update-user');
-                  },
-                ),
-                ListTile(
-                  title: const Text('Logout'),
-                  onTap: () {
-                    context.read<AuthRepository>().logout();
-                  },
-                ),
-              ],
-            );
-          },
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    avatar,
+                    const SizedBox(height: 24),
+                    ListTile(
+                      title: const Text('Update user'),
+                      onTap: () {
+                        context.push('/config/update-user');
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('Logout'),
+                      onTap: () {
+                        context.read<AuthRepository>().logout();
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

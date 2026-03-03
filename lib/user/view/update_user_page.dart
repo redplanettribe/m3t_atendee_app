@@ -265,7 +265,7 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
                       onTap: state.updatingAvatar
@@ -312,28 +312,38 @@ class _UpdateUserPageState extends State<UpdateUserPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'First name',
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'First name',
+                        ),
+                        textCapitalization: TextCapitalization.words,
                       ),
-                      textCapitalization: TextCapitalization.words,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _lastNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Last name',
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextField(
+                        controller: _lastNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Last name',
+                        ),
+                        textCapitalization: TextCapitalization.words,
                       ),
-                      textCapitalization: TextCapitalization.words,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: TextEditingController(text: user?.email ?? ''),
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextField(
+                        controller:
+                            TextEditingController(text: user?.email ?? ''),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                        ),
+                        enabled: false,
                       ),
-                      enabled: false,
                     ),
                     const SizedBox(height: 32),
                     SizedBox(
