@@ -1,60 +1,52 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
-import 'models/api_error.dart';
-import 'models/login_response.dart';
-import 'models/user.dart';
-
-class RequestLoginCodeFailure implements Exception {
-  RequestLoginCodeFailure(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'RequestLoginCodeFailure($message)';
-}
-
-class VerifyLoginCodeFailure implements Exception {
-  VerifyLoginCodeFailure(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'VerifyLoginCodeFailure($message)';
-}
+import 'package:m3t_api/src/exceptions.dart';
+import 'package:m3t_api/src/models/api_error.dart';
+import 'package:m3t_api/src/models/login_response.dart';
+import 'package:m3t_api/src/models/user.dart';
 
 /// Signature for a callback that returns the stored auth token (or null).
 typedef TokenProvider = Future<String?> Function();
 
-class M3tApiClient {
+/// HTTP client for the M3T API.
+final class M3tApiClient {
+  /// Creates an [M3tApiClient].
+  ///
+  /// [tokenProvider] is called on every authenticated request to retrieve the
+  /// current bearer token. Pass [httpClient] and [baseUrl] to override
+  /// defaults in tests.
   M3tApiClient({
+    required TokenProvider tokenProvider,
     http.Client? httpClient,
     String? baseUrl,
-    TokenProvider? tokenProvider,
-  })  : _httpClient = httpClient ?? http.Client(),
-        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
-        _tokenProvider = tokenProvider;
+  })  : _tokenProvider = tokenProvider,
+        _httpClient = httpClient ?? http.Client(),
+        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080';
 
+  final TokenProvider _tokenProvider;
   final http.Client _httpClient;
   final String _baseUrl;
-  final TokenProvider? _tokenProvider;
 
   Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
-  Map<String, String> get _jsonHeaders => {
+  Map<String, String> get _jsonHeaders => const {
         'content-type': 'application/json',
       };
 
   Future<Map<String, String>> _authHeaders() async {
-    final headers = Map<String, String>.of(_jsonHeaders);
-    final token = await _tokenProvider?.call();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
+    final token = await _tokenProvider();
+    return {
+      'content-type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
   }
 
+  // ---------------------------------------------------------------------------
+  // Auth
+  // ---------------------------------------------------------------------------
+
+  /// Requests a one-time login code be sent to [email].
   Future<void> requestLoginCode(String email) async {
     final response = await _httpClient.post(
       _uri('/auth/login/request'),
@@ -76,6 +68,7 @@ class M3tApiClient {
     }
   }
 
+  /// Verifies [code] for [email] and returns a [LoginResponse] on success.
   Future<LoginResponse> verifyLoginCode({
     required String email,
     required String code,
@@ -110,6 +103,11 @@ class M3tApiClient {
     return LoginResponse.fromJson(dataJson);
   }
 
+  // ---------------------------------------------------------------------------
+  // User profile
+  // ---------------------------------------------------------------------------
+
+  /// Returns the currently authenticated user.
   Future<User> getCurrentUser() async {
     final response = await _httpClient.get(
       _uri('/users/me'),
@@ -135,6 +133,7 @@ class M3tApiClient {
     return User.fromJson(dataJson);
   }
 
+  /// Updates the current user profile fields.
   Future<User> updateCurrentUser({
     String? name,
     String? lastName,
@@ -146,12 +145,8 @@ class M3tApiClient {
     }
 
     final body = <String, dynamic>{};
-    if (name != null) {
-      body['name'] = name;
-    }
-    if (lastName != null) {
-      body['last_name'] = lastName;
-    }
+    if (name != null) body['name'] = name;
+    if (lastName != null) body['last_name'] = lastName;
 
     final response = await _httpClient.patch(
       _uri('/users/me'),
@@ -178,6 +173,7 @@ class M3tApiClient {
     return User.fromJson(dataJson);
   }
 
+  /// Requests a pre-signed S3 upload URL for the current user avatar.
   Future<(Uri uploadUrl, String key)> requestAvatarUploadUrl() async {
     final response = await _httpClient.post(
       _uri('/users/me/avatar/upload-url'),
@@ -186,8 +182,7 @@ class M3tApiClient {
 
     if (response.statusCode != 200) {
       throw Exception(
-        'Avatar upload URL request failed with status '
-        '${response.statusCode}',
+        'Avatar upload URL request failed with status ${response.statusCode}',
       );
     }
 
@@ -197,8 +192,6 @@ class M3tApiClient {
     }
 
     final Map<String, dynamic> root = decoded;
-
-    // Some endpoints wrap responses in a { data, error } envelope.
     final Map<String, dynamic>? data;
     if (root.containsKey('key') && root.containsKey('upload_url')) {
       data = root;
@@ -217,6 +210,7 @@ class M3tApiClient {
     return (Uri.parse(uploadUrl), key);
   }
 
+  /// Uploads raw avatar [bytes] to the pre-signed [uploadUrl].
   Future<void> uploadAvatarBytes({
     required Uri uploadUrl,
     required List<int> bytes,
@@ -224,9 +218,7 @@ class M3tApiClient {
   }) async {
     final response = await _httpClient.put(
       uploadUrl,
-      headers: <String, String>{
-        'content-type': contentType,
-      },
+      headers: <String, String>{'content-type': contentType},
       body: bytes,
     );
 
@@ -237,6 +229,7 @@ class M3tApiClient {
     }
   }
 
+  /// Confirms the uploaded avatar identified by [key].
   Future<User> confirmAvatar({required String key}) async {
     final response = await _httpClient.put(
       _uri('/users/me/avatar'),
@@ -265,13 +258,13 @@ class M3tApiClient {
     return User.fromJson(dataJson);
   }
 
-  Map<String, dynamic> _decodeJson(String source) {
-    final dynamic decoded = jsonDecode(source);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
 
+  Map<String, dynamic> _decodeJson(String source) {
+    final decoded = jsonDecode(source);
+    if (decoded is Map<String, dynamic>) return decoded;
     throw const FormatException('Expected JSON object response');
   }
 }
-
