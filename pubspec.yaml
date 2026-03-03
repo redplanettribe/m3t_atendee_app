@@ -42,6 +42,7 @@ dependencies:
   auth_repository:
     path: packages/auth_repository
   flutter_secure_storage: ^9.2.4
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

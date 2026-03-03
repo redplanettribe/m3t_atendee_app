@@ -135,6 +135,136 @@ class M3tApiClient {
     return User.fromJson(dataJson);
   }
 
+  Future<User> updateCurrentUser({
+    String? name,
+    String? lastName,
+  }) async {
+    if (name == null && lastName == null) {
+      throw ArgumentError(
+        'At least one of name or lastName must be provided.',
+      );
+    }
+
+    final body = <String, dynamic>{};
+    if (name != null) {
+      body['name'] = name;
+    }
+    if (lastName != null) {
+      body['last_name'] = lastName;
+    }
+
+    final response = await _httpClient.patch(
+      _uri('/users/me'),
+      headers: await _authHeaders(),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Request failed with status ${response.statusCode}');
+    }
+
+    final bodyJson = _decodeJson(response.body);
+    final errorJson = bodyJson['error'] as Map<String, dynamic>?;
+    if (errorJson != null) {
+      final error = ApiError.fromJson(errorJson);
+      throw Exception(error.message);
+    }
+
+    final dataJson = bodyJson['data'] as Map<String, dynamic>?;
+    if (dataJson == null) {
+      throw const FormatException('Missing data field in response');
+    }
+
+    return User.fromJson(dataJson);
+  }
+
+  Future<(Uri uploadUrl, String key)> requestAvatarUploadUrl() async {
+    final response = await _httpClient.post(
+      _uri('/users/me/avatar/upload-url'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Avatar upload URL request failed with status '
+        '${response.statusCode}',
+      );
+    }
+
+    final dynamic decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Expected JSON object response');
+    }
+
+    final Map<String, dynamic> root = decoded;
+
+    // Some endpoints wrap responses in a { data, error } envelope.
+    final Map<String, dynamic>? data;
+    if (root.containsKey('key') && root.containsKey('upload_url')) {
+      data = root;
+    } else {
+      final nested = root['data'];
+      data = nested is Map<String, dynamic> ? nested : null;
+    }
+
+    final key = data?['key'] as String?;
+    final uploadUrl = data?['upload_url'] as String?;
+
+    if (key == null || uploadUrl == null) {
+      throw const FormatException('Missing key or upload_url in response');
+    }
+
+    return (Uri.parse(uploadUrl), key);
+  }
+
+  Future<void> uploadAvatarBytes({
+    required Uri uploadUrl,
+    required List<int> bytes,
+    required String contentType,
+  }) async {
+    final response = await _httpClient.put(
+      uploadUrl,
+      headers: <String, String>{
+        'content-type': contentType,
+      },
+      body: bytes,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Avatar upload failed with status ${response.statusCode}',
+      );
+    }
+  }
+
+  Future<User> confirmAvatar({required String key}) async {
+    final response = await _httpClient.put(
+      _uri('/users/me/avatar'),
+      headers: await _authHeaders(),
+      body: jsonEncode(<String, String>{'key': key}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Confirm avatar failed with status ${response.statusCode}',
+      );
+    }
+
+    final bodyJson = _decodeJson(response.body);
+    final errorJson = bodyJson['error'] as Map<String, dynamic>?;
+    if (errorJson != null) {
+      final error = ApiError.fromJson(errorJson);
+      throw Exception(error.message);
+    }
+
+    final dataJson = bodyJson['data'] as Map<String, dynamic>?;
+    if (dataJson == null) {
+      throw const FormatException('Missing data field in response');
+    }
+
+    return User.fromJson(dataJson);
+  }
+
   Map<String, dynamic> _decodeJson(String source) {
     final dynamic decoded = jsonDecode(source);
     if (decoded is Map<String, dynamic>) {

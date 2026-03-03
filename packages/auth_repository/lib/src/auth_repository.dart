@@ -52,6 +52,42 @@ class AuthRepository {
     return _apiClient.getCurrentUser();
   }
 
+  /// Updates the authenticated user's profile.
+  ///
+  /// At least one of [name] or [lastName] must be provided.
+  Future<User> updateCurrentUser({
+    String? name,
+    String? lastName,
+  }) {
+    return _apiClient.updateCurrentUser(name: name, lastName: lastName);
+  }
+
+  /// Requests a presigned upload URL and object key for the user's avatar.
+  ///
+  /// Returns a record containing the [uploadUrl] and storage [key].
+  Future<(Uri uploadUrl, String key)> requestAvatarUpload() {
+    return _apiClient.requestAvatarUploadUrl();
+  }
+
+  /// Uploads avatar bytes directly to the provided [uploadUrl].
+  Future<void> uploadAvatar({
+    required Uri uploadUrl,
+    required List<int> bytes,
+    required String contentType,
+  }) {
+    print('uploadUrl: $uploadUrl');
+    return _apiClient.uploadAvatarBytes(
+      uploadUrl: uploadUrl,
+      bytes: bytes,
+      contentType: contentType,
+    );
+  }
+
+  /// Confirms the uploaded avatar with the backend and returns the updated user.
+  Future<User> confirmAvatar({required String key}) {
+    return _apiClient.confirmAvatar(key: key);
+  }
+
   /// Returns the persisted JWT, or `null` if none is stored.
   Future<String?> getToken() => _secureStorage.read(key: tokenKey);
 

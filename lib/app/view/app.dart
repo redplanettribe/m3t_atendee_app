@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3t_attendee/login/login.dart';
 import 'package:m3t_attendee/user/user_cubit.dart';
+import 'package:m3t_attendee/user/view/update_user_page.dart';
 import 'package:m3t_api/m3t_api.dart';
 
 /// Resolves image URLs for the current platform. On Android, replaces
@@ -110,6 +111,12 @@ class _AppViewState extends State<_AppView> {
         GoRoute(
           path: '/config',
           builder: (context, state) => const _ConfigPage(),
+          routes: [
+            GoRoute(
+              path: 'update-user',
+              builder: (context, state) => const UpdateUserPage(),
+            ),
+          ],
         ),
       ],
     );
@@ -308,12 +315,7 @@ class _ConfigPage extends StatelessWidget {
                 ListTile(
                   title: const Text('Update user'),
                   onTap: () {
-                    // Placeholder for future update user flow.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Update user tapped'),
-                      ),
-                    );
+                    context.push('/config/update-user');
                   },
                 ),
                 ListTile(
