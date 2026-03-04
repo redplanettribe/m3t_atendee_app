@@ -130,14 +130,14 @@ final class _EmailStepState extends State<_EmailStep> {
   }
 }
 
-class _CodeVerificationStep extends StatefulWidget {
+final class _CodeVerificationStep extends StatefulWidget {
   const _CodeVerificationStep();
 
   @override
   State<_CodeVerificationStep> createState() => _CodeVerificationStepState();
 }
 
-class _CodeVerificationStepState extends State<_CodeVerificationStep> {
+final class _CodeVerificationStepState extends State<_CodeVerificationStep> {
   static bool _isLoadingSelector(LoginBloc bloc) =>
       bloc.state.status == .loading;
   static String _emailSelector(LoginBloc bloc) => bloc.state.email;
