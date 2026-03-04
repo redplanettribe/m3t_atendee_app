@@ -33,14 +33,24 @@ A Flutter app for m3t event attendees, built with Clean Architecture and a modul
 lib/
 ├── main.dart                            # Entry point → bootstrap()
 ├── bootstrap.dart                       # Composition root
+├── core/
+│   ├── app_config.dart                  # --dart-define constants
+│   └── auth/
+│       └── auth_failure_message.dart    # AuthFailure → display string
 ├── infrastructure/
 │   └── flutter_secure_token_storage.dart
 ├── app/
 │   ├── bloc/                            # AuthBloc (app-lifetime session)
+│   ├── routes.dart                      # AppRoutes constants
 │   ├── router/                          # GoRouterRefreshStream
 │   └── view/
-└── login/
-    ├── bloc/                            # LoginBloc (screen-scoped)
+├── login/
+│   ├── bloc/                            # LoginBloc (screen-scoped)
+│   └── view/
+├── user/
+│   ├── bloc/                            # UserCubit
+│   └── view/                            # UserAvatar, UserAvatarButton, ConfigPage, UpdateUserPage
+└── home/
     └── view/
 
 packages/
@@ -55,8 +65,27 @@ packages/
 
 ```bash
 flutter pub get
-flutter run
 ```
+
+The API base URL is injected at compile time via `--dart-define`. If the flag
+is omitted the app falls back to `http://10.0.2.2:8080` (Android emulator
+loopback — useful for local development).
+
+```bash
+# Remote server
+flutter run --dart-define=BASE_URL=https://your-api-host.example.com
+
+# Local backend (Android emulator default, no flag needed)
+flutter run
+
+# Production build
+flutter build apk --dart-define=BASE_URL=https://your-api-host.example.com
+flutter build ipa --dart-define=BASE_URL=https://your-api-host.example.com
+```
+
+The VS Code launch configuration passes the URL via `--dart-define` — just
+update `.vscode/launch.json` with your target URL and press **Run > Start
+Debugging** (`F5`).
 
 ## Running tests
 

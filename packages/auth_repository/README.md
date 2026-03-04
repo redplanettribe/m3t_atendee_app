@@ -39,6 +39,11 @@ await authRepository.initialize();
 |---|---|
 | `RequestLoginCodeFailure` | `NetworkError` |
 | `VerifyLoginCodeFailure` | `InvalidCode` |
+| `GetCurrentUserFailure` | `NetworkError` |
+| `UpdateCurrentUserFailure` | `NetworkError` |
+| `RequestAvatarUploadFailure` | `NetworkError` |
+| `UploadAvatarFailure` | `NetworkError` |
+| `ConfirmAvatarFailure` | `NetworkError` |
 | Any other `Exception` | `UnknownError` |
 
 ---
