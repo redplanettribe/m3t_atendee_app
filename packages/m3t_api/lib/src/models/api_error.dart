@@ -4,11 +4,14 @@ import 'package:json_annotation/json_annotation.dart';
 part 'api_error.g.dart';
 
 @JsonSerializable()
-class ApiError extends Equatable {
+final class ApiError extends Equatable {
   const ApiError({
     required this.code,
     required this.message,
   });
+
+  factory ApiError.fromJson(Map<String, dynamic> json) =>
+      _$ApiErrorFromJson(json);
 
   final String code;
   final String message;
@@ -23,12 +26,8 @@ class ApiError extends Equatable {
     );
   }
 
-  factory ApiError.fromJson(Map<String, dynamic> json) =>
-      _$ApiErrorFromJson(json);
-
   Map<String, dynamic> toJson() => _$ApiErrorToJson(this);
 
   @override
   List<Object?> get props => [code, message];
 }
-

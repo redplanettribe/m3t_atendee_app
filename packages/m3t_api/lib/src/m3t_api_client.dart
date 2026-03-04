@@ -1,28 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
-import 'models/api_error.dart';
-import 'models/login_response.dart';
-import 'models/user.dart';
-
-class RequestLoginCodeFailure implements Exception {
-  RequestLoginCodeFailure(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'RequestLoginCodeFailure($message)';
-}
-
-class VerifyLoginCodeFailure implements Exception {
-  VerifyLoginCodeFailure(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'VerifyLoginCodeFailure($message)';
-}
+import 'package:m3t_api/src/exceptions.dart';
+import 'package:m3t_api/src/models/api_error.dart';
+import 'package:m3t_api/src/models/login_response.dart';
+import 'package:m3t_api/src/models/user.dart';
 
 /// Signature for a callback that returns the stored auth token (or null).
 typedef TokenProvider = Future<String?> Function();
@@ -32,19 +14,19 @@ class M3tApiClient {
     http.Client? httpClient,
     String? baseUrl,
     TokenProvider? tokenProvider,
-  })  : _httpClient = httpClient ?? http.Client(),
-        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
-        _tokenProvider = tokenProvider;
+  }) : _httpClient = httpClient ?? http.Client(),
+       _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
+       _tokenProvider = tokenProvider;
 
   final http.Client _httpClient;
-  final String _baseUrl;
   final TokenProvider? _tokenProvider;
+  final String _baseUrl;
 
   Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
   Map<String, String> get _jsonHeaders => {
-        'content-type': 'application/json',
-      };
+    'content-type': 'application/json',
+  };
 
   Future<Map<String, String>> _authHeaders() async {
     final headers = Map<String, String>.of(_jsonHeaders);
@@ -117,19 +99,21 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Request failed with status ${response.statusCode}');
+      throw GetCurrentUserFailure(
+        'Request failed with status ${response.statusCode}',
+      );
     }
 
     final body = _decodeJson(response.body);
     final errorJson = body['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw GetCurrentUserFailure(error.message);
     }
 
     final dataJson = body['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw GetCurrentUserFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
@@ -160,19 +144,21 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Request failed with status ${response.statusCode}');
+      throw UpdateCurrentUserFailure(
+        'Request failed with status ${response.statusCode}',
+      );
     }
 
     final bodyJson = _decodeJson(response.body);
     final errorJson = bodyJson['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw UpdateCurrentUserFailure(error.message);
     }
 
     final dataJson = bodyJson['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw UpdateCurrentUserFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
@@ -185,18 +171,17 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'Avatar upload URL request failed with status '
-        '${response.statusCode}',
+      throw RequestAvatarUploadFailure(
+        'Avatar upload URL request failed with status ${response.statusCode}',
       );
     }
 
     final dynamic decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Expected JSON object response');
+      throw RequestAvatarUploadFailure('Expected JSON object response');
     }
 
-    final Map<String, dynamic> root = decoded;
+    final root = decoded;
 
     // Some endpoints wrap responses in a { data, error } envelope.
     final Map<String, dynamic>? data;
@@ -211,7 +196,7 @@ class M3tApiClient {
     final uploadUrl = data?['upload_url'] as String?;
 
     if (key == null || uploadUrl == null) {
-      throw const FormatException('Missing key or upload_url in response');
+      throw RequestAvatarUploadFailure('Missing key or upload_url in response');
     }
 
     return (Uri.parse(uploadUrl), key);
@@ -231,7 +216,7 @@ class M3tApiClient {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
+      throw UploadAvatarFailure(
         'Avatar upload failed with status ${response.statusCode}',
       );
     }
@@ -245,7 +230,7 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
+      throw ConfirmAvatarFailure(
         'Confirm avatar failed with status ${response.statusCode}',
       );
     }
@@ -254,19 +239,19 @@ class M3tApiClient {
     final errorJson = bodyJson['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw ConfirmAvatarFailure(error.message);
     }
 
     final dataJson = bodyJson['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw ConfirmAvatarFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
   }
 
   Map<String, dynamic> _decodeJson(String source) {
-    final dynamic decoded = jsonDecode(source);
+    final decoded = jsonDecode(source);
     if (decoded is Map<String, dynamic>) {
       return decoded;
     }
@@ -274,4 +259,3 @@ class M3tApiClient {
     throw const FormatException('Expected JSON object response');
   }
 }
-

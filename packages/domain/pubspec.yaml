@@ -1,0 +1,14 @@
+name: domain
+description: "Domain layer for the m3t Attendee App."
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  equatable: ^2.0.8
+
+dev_dependencies:
+  test: ^1.25.0
+  very_good_analysis: ^10.2.0

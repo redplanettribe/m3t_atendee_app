@@ -1,17 +1,19 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-import 'user.dart';
+import 'package:m3t_api/src/models/user.dart';
 
 part 'login_response.g.dart';
 
-@JsonSerializable(fieldRename: FieldRename.snake)
-class LoginResponse extends Equatable {
+@JsonSerializable(fieldRename: .snake)
+final class LoginResponse extends Equatable {
   const LoginResponse({
     required this.token,
     required this.tokenType,
     required this.user,
   });
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) =>
+      _$LoginResponseFromJson(json);
 
   final String token;
   final String tokenType;
@@ -29,12 +31,8 @@ class LoginResponse extends Equatable {
     );
   }
 
-  factory LoginResponse.fromJson(Map<String, dynamic> json) =>
-      _$LoginResponseFromJson(json);
-
   Map<String, dynamic> toJson() => _$LoginResponseToJson(this);
 
   @override
   List<Object?> get props => [token, tokenType, user];
 }
-

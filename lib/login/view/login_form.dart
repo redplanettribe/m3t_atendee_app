@@ -2,24 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m3t_attendee/login/login.dart';
 
-class LoginForm extends StatelessWidget {
+final class LoginForm extends StatelessWidget {
   const LoginForm({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<LoginBloc, LoginState>(
-      listenWhen: (previous, current) =>
-          previous.status != current.status,
+      listenWhen: (previous, current) => previous.status != current.status,
       listener: (context, state) {
-        if (state.status == LoginStatus.failure &&
-            state.errorMessage != null) {
+        if (state.status == LoginStatus.failure && state.errorMessage != null) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                behavior: SnackBarBehavior.floating,
-              ),
+              SnackBar(content: Text(state.errorMessage!), behavior: .floating),
             );
         }
       },
@@ -31,9 +26,8 @@ class LoginForm extends StatelessWidget {
             child: BlocBuilder<LoginBloc, LoginState>(
               builder: (context, state) {
                 return switch (state.step) {
-                  LoginStep.emailEntry => const _EmailStep(),
-                  LoginStep.codeVerification =>
-                    const _CodeVerificationStep(),
+                  .emailEntry => const _EmailStep(),
+                  .codeVerification => const _CodeVerificationStep(),
                 };
               },
             ),
@@ -44,14 +38,17 @@ class LoginForm extends StatelessWidget {
   }
 }
 
-class _EmailStep extends StatefulWidget {
+final class _EmailStep extends StatefulWidget {
   const _EmailStep();
 
   @override
   State<_EmailStep> createState() => _EmailStepState();
 }
 
-class _EmailStepState extends State<_EmailStep> {
+final class _EmailStepState extends State<_EmailStep> {
+  static bool _isLoadingSelector(LoginBloc bloc) =>
+      bloc.state.status == .loading;
+
   late final TextEditingController _emailController;
 
   @override
@@ -71,13 +68,11 @@ class _EmailStepState extends State<_EmailStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLoading = context.select(
-      (LoginBloc bloc) => bloc.state.status == LoginStatus.loading,
-    );
+    final isLoading = context.select(_isLoadingSelector);
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: .min,
+      crossAxisAlignment: .stretch,
       children: [
         Icon(
           Icons.lock_outline_rounded,
@@ -87,10 +82,8 @@ class _EmailStepState extends State<_EmailStep> {
         const SizedBox(height: 24),
         Text(
           'Welcome',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: .bold),
+          textAlign: .center,
         ),
         const SizedBox(height: 8),
         Text(
@@ -98,15 +91,15 @@ class _EmailStepState extends State<_EmailStep> {
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
-          textAlign: TextAlign.center,
+          textAlign: .center,
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _emailController,
           onChanged: (value) =>
               context.read<LoginBloc>().add(LoginEmailChanged(value)),
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.done,
+          keyboardType: .emailAddress,
+          textInputAction: .done,
           autofillHints: const [AutofillHints.email],
           decoration: const InputDecoration(
             labelText: 'Email',
@@ -116,9 +109,7 @@ class _EmailStepState extends State<_EmailStep> {
           ),
           onSubmitted: (_) {
             if (!isLoading) {
-              context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeRequested());
+              context.read<LoginBloc>().add(const LoginCodeRequested());
             }
           },
         ),
@@ -126,15 +117,11 @@ class _EmailStepState extends State<_EmailStep> {
         FilledButton(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeRequested()),
+              : () => context.read<LoginBloc>().add(const LoginCodeRequested()),
           child: isLoading
               ? const SizedBox.square(
                   dimension: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Send Code'),
         ),
@@ -143,15 +130,17 @@ class _EmailStepState extends State<_EmailStep> {
   }
 }
 
-class _CodeVerificationStep extends StatefulWidget {
+final class _CodeVerificationStep extends StatefulWidget {
   const _CodeVerificationStep();
 
   @override
-  State<_CodeVerificationStep> createState() =>
-      _CodeVerificationStepState();
+  State<_CodeVerificationStep> createState() => _CodeVerificationStepState();
 }
 
-class _CodeVerificationStepState extends State<_CodeVerificationStep> {
+final class _CodeVerificationStepState extends State<_CodeVerificationStep> {
+  static bool _isLoadingSelector(LoginBloc bloc) =>
+      bloc.state.status == .loading;
+  static String _emailSelector(LoginBloc bloc) => bloc.state.email;
   late final TextEditingController _codeController;
 
   @override
@@ -171,12 +160,12 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = context.watch<LoginBloc>().state;
-    final isLoading = state.status == LoginStatus.loading;
+    final isLoading = context.select(_isLoadingSelector);
+    final email = context.select(_emailSelector);
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: .min,
+      crossAxisAlignment: .stretch,
       children: [
         Icon(
           Icons.mark_email_read_outlined,
@@ -186,30 +175,26 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
         const SizedBox(height: 24),
         Text(
           'Check your email',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: .bold),
+          textAlign: .center,
         ),
         const SizedBox(height: 8),
         Text(
-          'We sent a code to ${state.email}',
+          'We sent a code to $email',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
-          textAlign: TextAlign.center,
+          textAlign: .center,
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _codeController,
           onChanged: (value) =>
               context.read<LoginBloc>().add(LoginCodeChanged(value)),
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.done,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            letterSpacing: 8,
-          ),
+          keyboardType: .number,
+          textInputAction: .done,
+          textAlign: .center,
+          style: theme.textTheme.headlineSmall?.copyWith(letterSpacing: 8),
           decoration: const InputDecoration(
             labelText: 'Verification Code',
             hintText: '000000',
@@ -218,9 +203,7 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
           ),
           onSubmitted: (_) {
             if (!isLoading) {
-              context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeSubmitted());
+              context.read<LoginBloc>().add(const LoginCodeSubmitted());
             }
           },
         ),
@@ -228,15 +211,11 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
         FilledButton(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginCodeSubmitted()),
+              : () => context.read<LoginBloc>().add(const LoginCodeSubmitted()),
           child: isLoading
               ? const SizedBox.square(
                   dimension: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Verify'),
         ),
@@ -244,9 +223,8 @@ class _CodeVerificationStepState extends State<_CodeVerificationStep> {
         TextButton.icon(
           onPressed: isLoading
               ? null
-              : () => context
-                  .read<LoginBloc>()
-                  .add(const LoginStepBackToEmail()),
+              : () =>
+                    context.read<LoginBloc>().add(const LoginStepBackToEmail()),
           icon: const Icon(Icons.arrow_back, size: 18),
           label: const Text('Use a different email'),
         ),

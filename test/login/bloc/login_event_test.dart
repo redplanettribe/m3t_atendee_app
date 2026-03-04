@@ -1,4 +1,3 @@
-// ignore_for_file: prefer_const_constructors
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3t_attendee/login/login.dart';
 
@@ -7,14 +6,14 @@ void main() {
     group('LoginEmailChanged', () {
       test('supports value equality', () {
         expect(
-          LoginEmailChanged('test@example.com'),
-          equals(LoginEmailChanged('test@example.com')),
+          const LoginEmailChanged('test@example.com'),
+          equals(const LoginEmailChanged('test@example.com')),
         );
       });
 
       test('props are correct', () {
         expect(
-          LoginEmailChanged('test@example.com').props,
+          const LoginEmailChanged('test@example.com').props,
           equals(<Object?>['test@example.com']),
         );
       });
@@ -23,14 +22,14 @@ void main() {
     group('LoginCodeRequested', () {
       test('supports value equality', () {
         expect(
-          LoginCodeRequested(),
-          equals(LoginCodeRequested()),
+          const LoginCodeRequested(),
+          equals(const LoginCodeRequested()),
         );
       });
 
       test('props are correct', () {
         expect(
-          LoginCodeRequested().props,
+          const LoginCodeRequested().props,
           equals(<Object?>[]),
         );
       });
@@ -39,14 +38,14 @@ void main() {
     group('LoginCodeChanged', () {
       test('supports value equality', () {
         expect(
-          LoginCodeChanged('123456'),
-          equals(LoginCodeChanged('123456')),
+          const LoginCodeChanged('123456'),
+          equals(const LoginCodeChanged('123456')),
         );
       });
 
       test('props are correct', () {
         expect(
-          LoginCodeChanged('123456').props,
+          const LoginCodeChanged('123456').props,
           equals(<Object?>['123456']),
         );
       });
@@ -55,14 +54,14 @@ void main() {
     group('LoginCodeSubmitted', () {
       test('supports value equality', () {
         expect(
-          LoginCodeSubmitted(),
-          equals(LoginCodeSubmitted()),
+          const LoginCodeSubmitted(),
+          equals(const LoginCodeSubmitted()),
         );
       });
 
       test('props are correct', () {
         expect(
-          LoginCodeSubmitted().props,
+          const LoginCodeSubmitted().props,
           equals(<Object?>[]),
         );
       });
@@ -71,14 +70,14 @@ void main() {
     group('LoginStepBackToEmail', () {
       test('supports value equality', () {
         expect(
-          LoginStepBackToEmail(),
-          equals(LoginStepBackToEmail()),
+          const LoginStepBackToEmail(),
+          equals(const LoginStepBackToEmail()),
         );
       });
 
       test('props are correct', () {
         expect(
-          LoginStepBackToEmail().props,
+          const LoginStepBackToEmail().props,
           equals(<Object?>[]),
         );
       });

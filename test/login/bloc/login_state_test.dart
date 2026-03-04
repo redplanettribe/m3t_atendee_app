@@ -1,12 +1,11 @@
-// ignore_for_file: prefer_const_constructors, avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3t_attendee/login/login.dart';
 
 void main() {
   group('LoginState', () {
     LoginState createSubject({
-      LoginStep step = LoginStep.emailEntry,
-      LoginStatus status = LoginStatus.initial,
+      LoginStep step = .emailEntry,
+      LoginStatus status = .initial,
       String email = '',
       String code = '',
       String? errorMessage,
@@ -21,17 +20,12 @@ void main() {
     }
 
     test('supports value equality', () {
-      expect(
-        createSubject(),
-        equals(createSubject()),
-      );
+      expect(createSubject(), equals(createSubject()));
     });
 
     test('props are correct', () {
       expect(
         createSubject(
-          step: LoginStep.emailEntry,
-          status: LoginStatus.initial,
           email: 'test@example.com',
           code: '123456',
           errorMessage: 'error',
@@ -48,41 +42,43 @@ void main() {
 
     group('copyWith', () {
       test('returns the same object if no arguments are provided', () {
+        expect(createSubject().copyWith(), equals(createSubject()));
+      });
+
+      test('retains existing errorMessage when errorMessage is not passed', () {
+        final subject = createSubject(errorMessage: 'existing error');
         expect(
-          createSubject().copyWith(),
+          subject.copyWith(status: .loading),
+          equals(
+            createSubject(
+              status: .loading,
+              errorMessage: 'existing error',
+            ),
+          ),
+        );
+      });
+
+      test('clears errorMessage when null is explicitly passed', () {
+        final subject = createSubject(errorMessage: 'existing error');
+        expect(
+          subject.copyWith(errorMessage: null),
           equals(createSubject()),
         );
       });
 
-      test(
-        'retains the old value for every parameter if null is provided',
-        () {
-          expect(
-            createSubject().copyWith(
-              step: null,
-              status: null,
-              email: null,
-              code: null,
-              errorMessage: null,
-            ),
-            equals(createSubject()),
-          );
-        },
-      );
-
       test('replaces every non-null parameter', () {
         expect(
           createSubject().copyWith(
-            step: () => LoginStep.codeVerification,
-            status: () => LoginStatus.success,
-            email: () => 'new@example.com',
-            code: () => '654321',
-            errorMessage: () => 'new error',
+            step: .codeVerification,
+            status: .success,
+            email: 'new@example.com',
+            code: '654321',
+            errorMessage: 'new error',
           ),
           equals(
             createSubject(
-              step: LoginStep.codeVerification,
-              status: LoginStatus.success,
+              step: .codeVerification,
+              status: .success,
               email: 'new@example.com',
               code: '654321',
               errorMessage: 'new error',

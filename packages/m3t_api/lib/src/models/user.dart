@@ -3,8 +3,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'user.g.dart';
 
-@JsonSerializable(fieldRename: FieldRename.snake)
-class User extends Equatable {
+@JsonSerializable(fieldRename: .snake)
+final class User extends Equatable {
   const User({
     required this.id,
     required this.email,
@@ -14,6 +14,8 @@ class User extends Equatable {
     this.updatedAt,
     this.profilePictureUrl,
   });
+
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
   final String id;
   final String email;
@@ -43,12 +45,9 @@ class User extends Equatable {
     );
   }
 
-  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
-
   Map<String, dynamic> toJson() => _$UserToJson(this);
 
   @override
   List<Object?> get props =>
       [id, email, name, lastName, createdAt, updatedAt, profilePictureUrl];
 }
-

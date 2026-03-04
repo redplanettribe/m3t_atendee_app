@@ -1,11 +1,10 @@
-import 'package:auth_repository/auth_repository.dart';
 import 'package:bloc_test/bloc_test.dart';
+import 'package:domain/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3t_api/m3t_api.dart';
 import 'package:m3t_attendee/login/login.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockAuthRepository extends Mock implements AuthRepository {}
+class _MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
   group('LoginBloc', () {
@@ -13,36 +12,28 @@ void main() {
 
     const testEmail = 'test@example.com';
     const testCode = '123456';
-    const testLoginResponse = LoginResponse(
-      token: 'jwt-token',
-      tokenType: 'bearer',
-      user: User(id: '1', email: testEmail),
-    );
+    const testAuthUser = AuthUser(id: '1', email: testEmail);
 
     setUp(() {
-      authRepository = MockAuthRepository();
-      when(() => authRepository.requestLoginCode(any()))
-          .thenAnswer((_) async {});
+      authRepository = _MockAuthRepository();
+      when(
+        () => authRepository.requestLoginCode(any()),
+      ).thenAnswer((_) async {});
       when(
         () => authRepository.verifyLoginCode(
           email: any(named: 'email'),
           code: any(named: 'code'),
         ),
-      ).thenAnswer((_) async => testLoginResponse);
+      ).thenAnswer((_) async => testAuthUser);
     });
 
-    LoginBloc buildBloc() {
-      return LoginBloc(authRepository: authRepository);
-    }
+    LoginBloc buildBloc() => LoginBloc(authRepository: authRepository);
 
     group('constructor', () {
       test('works properly', () => expect(buildBloc, returnsNormally));
 
       test('has correct initial state', () {
-        expect(
-          buildBloc().state,
-          equals(const LoginState()),
-        );
+        expect(buildBloc().state, equals(const LoginState()));
       });
     });
 
@@ -51,8 +42,20 @@ void main() {
         'emits state with updated email',
         build: buildBloc,
         act: (bloc) => bloc.add(const LoginEmailChanged(testEmail)),
+        expect: () => const <LoginState>[LoginState(email: testEmail)],
+      );
+
+      blocTest<LoginBloc, LoginState>(
+        'resets status to initial when email changes',
+        build: buildBloc,
+        seed: () => const LoginState(
+          email: testEmail,
+          status: LoginStatus.failure,
+          errorMessage: 'some error',
+        ),
+        act: (bloc) => bloc.add(const LoginEmailChanged('new@example.com')),
         expect: () => const <LoginState>[
-          LoginState(email: testEmail),
+          LoginState(email: 'new@example.com'),
         ],
       );
     });
@@ -64,44 +67,50 @@ void main() {
         seed: () => const LoginState(email: testEmail),
         act: (bloc) => bloc.add(const LoginCodeRequested()),
         expect: () => const <LoginState>[
-          LoginState(
-            email: testEmail,
-            status: LoginStatus.loading,
-          ),
-          LoginState(
-            email: testEmail,
-            step: LoginStep.codeVerification,
-            status: LoginStatus.initial,
-          ),
+          LoginState(email: testEmail, status: .loading),
+          LoginState(email: testEmail, step: .codeVerification),
         ],
         verify: (_) {
-          verify(
-            () => authRepository.requestLoginCode(testEmail),
-          ).called(1);
+          verify(() => authRepository.requestLoginCode(testEmail)).called(1);
         },
       );
 
       blocTest<LoginBloc, LoginState>(
-        'emits [loading, failure] when request fails',
+        'emits [loading, failure] with network message when request fails',
         setUp: () {
-          when(() => authRepository.requestLoginCode(any()))
-              .thenThrow(
-            RequestLoginCodeFailure('bad_request'),
-          );
+          when(
+            () => authRepository.requestLoginCode(any()),
+          ).thenThrow(NetworkError());
         },
         build: buildBloc,
         seed: () => const LoginState(email: testEmail),
         act: (bloc) => bloc.add(const LoginCodeRequested()),
         expect: () => <LoginState>[
+          const LoginState(email: testEmail, status: .loading),
           const LoginState(
             email: testEmail,
-            status: LoginStatus.loading,
+            status: .failure,
+            errorMessage: 'A network error occurred. Please try again.',
           ),
-          LoginState(
+        ],
+      );
+
+      blocTest<LoginBloc, LoginState>(
+        'emits [loading, failure] with unknown message on unexpected error',
+        setUp: () {
+          when(
+            () => authRepository.requestLoginCode(any()),
+          ).thenThrow(UnknownError());
+        },
+        build: buildBloc,
+        seed: () => const LoginState(email: testEmail),
+        act: (bloc) => bloc.add(const LoginCodeRequested()),
+        expect: () => <LoginState>[
+          const LoginState(email: testEmail, status: .loading),
+          const LoginState(
             email: testEmail,
-            status: LoginStatus.failure,
-            errorMessage:
-                RequestLoginCodeFailure('bad_request').toString(),
+            status: .failure,
+            errorMessage: 'An unexpected error occurred. Please try again.',
           ),
         ],
       );
@@ -113,13 +122,13 @@ void main() {
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
         ),
         act: (bloc) => bloc.add(const LoginCodeChanged(testCode)),
         expect: () => const <LoginState>[
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
           ),
         ],
@@ -132,22 +141,22 @@ void main() {
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginCodeSubmitted()),
         expect: () => const <LoginState>[
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.loading,
+            status: .loading,
           ),
           LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.success,
+            status: .success,
           ),
         ],
         verify: (_) {
@@ -161,38 +170,69 @@ void main() {
       );
 
       blocTest<LoginBloc, LoginState>(
-        'emits [loading, failure] when verification fails',
+        'emits [loading, failure] with invalid code message when code is wrong',
         setUp: () {
           when(
             () => authRepository.verifyLoginCode(
               email: any(named: 'email'),
               code: any(named: 'code'),
             ),
-          ).thenThrow(
-            VerifyLoginCodeFailure('unauthorized'),
-          );
+          ).thenThrow(InvalidCode());
         },
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginCodeSubmitted()),
         expect: () => <LoginState>[
           const LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.loading,
+            status: .loading,
           ),
-          LoginState(
+          const LoginState(
             email: testEmail,
-            step: LoginStep.codeVerification,
+            step: .codeVerification,
             code: testCode,
-            status: LoginStatus.failure,
-            errorMessage:
-                VerifyLoginCodeFailure('unauthorized').toString(),
+            status: .failure,
+            errorMessage: 'The verification code is invalid.',
+          ),
+        ],
+      );
+
+      blocTest<LoginBloc, LoginState>(
+        'emits [loading, failure] with network message on network error',
+        setUp: () {
+          when(
+            () => authRepository.verifyLoginCode(
+              email: any(named: 'email'),
+              code: any(named: 'code'),
+            ),
+          ).thenThrow(NetworkError());
+        },
+        build: buildBloc,
+        seed: () => const LoginState(
+          email: testEmail,
+          step: .codeVerification,
+          code: testCode,
+        ),
+        act: (bloc) => bloc.add(const LoginCodeSubmitted()),
+        expect: () => <LoginState>[
+          const LoginState(
+            email: testEmail,
+            step: .codeVerification,
+            code: testCode,
+            status: .loading,
+          ),
+          const LoginState(
+            email: testEmail,
+            step: .codeVerification,
+            code: testCode,
+            status: .failure,
+            errorMessage: 'A network error occurred. Please try again.',
           ),
         ],
       );
@@ -200,21 +240,15 @@ void main() {
 
     group('LoginStepBackToEmail', () {
       blocTest<LoginBloc, LoginState>(
-        'emits state reset to email entry step',
+        'resets step to emailEntry and clears code',
         build: buildBloc,
         seed: () => const LoginState(
           email: testEmail,
-          step: LoginStep.codeVerification,
+          step: .codeVerification,
           code: testCode,
         ),
         act: (bloc) => bloc.add(const LoginStepBackToEmail()),
-        expect: () => const <LoginState>[
-          LoginState(
-            email: testEmail,
-            step: LoginStep.emailEntry,
-            status: LoginStatus.initial,
-          ),
-        ],
+        expect: () => const <LoginState>[LoginState(email: testEmail)],
       );
     });
   });
