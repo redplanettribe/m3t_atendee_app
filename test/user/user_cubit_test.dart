@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3t_attendee/user/user_cubit.dart';
+import 'package:m3t_attendee/user/user.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
@@ -39,17 +39,19 @@ void main() {
       );
 
       blocTest<UserCubit, UserState>(
-        'emits loading false and errorMessage when failure',
+        'emits loading false and human-readable errorMessage when failure',
         build: buildCubit,
         setUp: () {
           when(
             () => authRepository.getCurrentUser(),
-          ).thenThrow(Exception('failed'));
+          ).thenThrow(NetworkError());
         },
         act: (cubit) => cubit.loadCurrentUser(),
         expect: () => <UserState>[
           const UserState(loading: true),
-          const UserState(errorMessage: 'Exception: failed'),
+          const UserState(
+            errorMessage: 'A network error occurred. Please try again.',
+          ),
         ],
       );
     });
@@ -80,6 +82,46 @@ void main() {
           ),
           const UserState(
             user: updatedUser,
+          ),
+        ],
+      );
+
+      blocTest<UserCubit, UserState>(
+        'emits human-readable errorMessage on AuthFailure',
+        build: buildCubit,
+        setUp: () {
+          when(
+            () => authRepository.updateCurrentUser(
+              name: any(named: 'name'),
+              lastName: any(named: 'lastName'),
+            ),
+          ).thenThrow(NetworkError());
+        },
+        act: (cubit) => cubit.updateProfile(name: 'New', lastName: 'Name'),
+        expect: () => <UserState>[
+          const UserState(updatingProfile: true),
+          const UserState(
+            errorMessage: 'A network error occurred. Please try again.',
+          ),
+        ],
+      );
+
+      blocTest<UserCubit, UserState>(
+        'emits generic errorMessage on unexpected Object error',
+        build: buildCubit,
+        setUp: () {
+          when(
+            () => authRepository.updateCurrentUser(
+              name: any(named: 'name'),
+              lastName: any(named: 'lastName'),
+            ),
+          ).thenThrow(StateError('unexpected'));
+        },
+        act: (cubit) => cubit.updateProfile(name: 'New', lastName: 'Name'),
+        expect: () => <UserState>[
+          const UserState(updatingProfile: true),
+          const UserState(
+            errorMessage: 'An unexpected error occurred. Please try again.',
           ),
         ],
       );
@@ -120,6 +162,56 @@ void main() {
           ),
           const UserState(
             user: updatedUser,
+          ),
+        ],
+      );
+
+      blocTest<UserCubit, UserState>(
+        'emits human-readable errorMessage when requestAvatarUpload fails',
+        build: buildCubit,
+        setUp: () {
+          when(
+            () => authRepository.requestAvatarUpload(),
+          ).thenThrow(NetworkError());
+        },
+        act: (cubit) => cubit.updateAvatar(
+          bytes: [1, 2, 3],
+          contentType: 'image/png',
+        ),
+        expect: () => <UserState>[
+          const UserState(updatingAvatar: true),
+          const UserState(
+            errorMessage: 'A network error occurred. Please try again.',
+          ),
+        ],
+      );
+
+      blocTest<UserCubit, UserState>(
+        'emits human-readable errorMessage when confirmAvatar fails',
+        build: buildCubit,
+        setUp: () {
+          when(() => authRepository.requestAvatarUpload()).thenAnswer(
+            (_) async => (Uri.parse('https://upload'), 'key'),
+          );
+          when(
+            () => authRepository.uploadAvatar(
+              uploadUrl: any(named: 'uploadUrl'),
+              bytes: any(named: 'bytes'),
+              contentType: any(named: 'contentType'),
+            ),
+          ).thenAnswer((_) async {});
+          when(
+            () => authRepository.confirmAvatar(key: any(named: 'key')),
+          ).thenThrow(UnknownError());
+        },
+        act: (cubit) => cubit.updateAvatar(
+          bytes: [1, 2, 3],
+          contentType: 'image/png',
+        ),
+        expect: () => <UserState>[
+          const UserState(updatingAvatar: true),
+          const UserState(
+            errorMessage: 'An unexpected error occurred. Please try again.',
           ),
         ],
       );

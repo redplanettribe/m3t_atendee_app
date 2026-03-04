@@ -6,7 +6,7 @@ import 'package:m3t_attendee/core/auth/auth_failure_message.dart';
 part 'login_event.dart';
 part 'login_state.dart';
 
-class LoginBloc extends Bloc<LoginEvent, LoginState> {
+final class LoginBloc extends Bloc<LoginEvent, LoginState> {
   LoginBloc({required AuthRepository authRepository})
     : _authRepository = authRepository,
       super(const LoginState()) {
@@ -46,6 +46,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           errorMessage: failure.toDisplayMessage(),
         ),
       );
+    } on Object catch (error, stackTrace) {
+      addError(error, stackTrace);
+      emit(
+        state.copyWith(
+          status: .failure,
+          errorMessage: UnknownError().toDisplayMessage(),
+        ),
+      );
     }
   }
 
@@ -78,6 +86,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         state.copyWith(
           status: .failure,
           errorMessage: failure.toDisplayMessage(),
+        ),
+      );
+    } on Object catch (error, stackTrace) {
+      addError(error, stackTrace);
+      emit(
+        state.copyWith(
+          status: .failure,
+          errorMessage: UnknownError().toDisplayMessage(),
         ),
       );
     }

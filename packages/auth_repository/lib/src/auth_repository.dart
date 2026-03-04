@@ -86,8 +86,15 @@ final class AuthRepositoryImpl implements AuthRepository {
 
   /// Fetches the authenticated user's profile.
   @override
-  Future<AuthUser> getCurrentUser() async =>
-      (await _apiClient.getCurrentUser()).toDomain();
+  Future<AuthUser> getCurrentUser() async {
+    try {
+      return (await _apiClient.getCurrentUser()).toDomain();
+    } on GetCurrentUserFailure catch (_) {
+      throw NetworkError();
+    } on Exception catch (_) {
+      throw UnknownError();
+    }
+  }
 
   /// Updates the authenticated user's profile.
   ///
@@ -97,17 +104,30 @@ final class AuthRepositoryImpl implements AuthRepository {
     String? name,
     String? lastName,
   }) async {
-    final result = await _apiClient.updateCurrentUser(
-      name: name,
-      lastName: lastName,
-    );
-    return result.toDomain();
+    try {
+      final result = await _apiClient.updateCurrentUser(
+        name: name,
+        lastName: lastName,
+      );
+      return result.toDomain();
+    } on UpdateCurrentUserFailure catch (_) {
+      throw NetworkError();
+    } on Exception catch (_) {
+      throw UnknownError();
+    }
   }
 
   /// Requests a presigned S3 upload URL and object key for the user's avatar.
   @override
-  Future<(Uri uploadUrl, String key)> requestAvatarUpload() =>
-      _apiClient.requestAvatarUploadUrl();
+  Future<(Uri uploadUrl, String key)> requestAvatarUpload() async {
+    try {
+      return await _apiClient.requestAvatarUploadUrl();
+    } on RequestAvatarUploadFailure catch (_) {
+      throw NetworkError();
+    } on Exception catch (_) {
+      throw UnknownError();
+    }
+  }
 
   /// Uploads avatar [bytes] directly to [uploadUrl].
   @override
@@ -115,17 +135,32 @@ final class AuthRepositoryImpl implements AuthRepository {
     required Uri uploadUrl,
     required List<int> bytes,
     required String contentType,
-  }) => _apiClient.uploadAvatarBytes(
-    uploadUrl: uploadUrl,
-    bytes: bytes,
-    contentType: contentType,
-  );
+  }) async {
+    try {
+      await _apiClient.uploadAvatarBytes(
+        uploadUrl: uploadUrl,
+        bytes: bytes,
+        contentType: contentType,
+      );
+    } on UploadAvatarFailure catch (_) {
+      throw NetworkError();
+    } on Exception catch (_) {
+      throw UnknownError();
+    }
+  }
 
   /// Confirms the uploaded avatar with the backend and
   /// returns the updated user.
   @override
-  Future<AuthUser> confirmAvatar({required String key}) async =>
-      (await _apiClient.confirmAvatar(key: key)).toDomain();
+  Future<AuthUser> confirmAvatar({required String key}) async {
+    try {
+      return (await _apiClient.confirmAvatar(key: key)).toDomain();
+    } on ConfirmAvatarFailure catch (_) {
+      throw NetworkError();
+    } on Exception catch (_) {
+      throw UnknownError();
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Auth lifecycle

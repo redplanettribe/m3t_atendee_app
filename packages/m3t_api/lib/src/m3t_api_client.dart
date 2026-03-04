@@ -99,19 +99,21 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Request failed with status ${response.statusCode}');
+      throw GetCurrentUserFailure(
+        'Request failed with status ${response.statusCode}',
+      );
     }
 
     final body = _decodeJson(response.body);
     final errorJson = body['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw GetCurrentUserFailure(error.message);
     }
 
     final dataJson = body['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw GetCurrentUserFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
@@ -142,19 +144,21 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Request failed with status ${response.statusCode}');
+      throw UpdateCurrentUserFailure(
+        'Request failed with status ${response.statusCode}',
+      );
     }
 
     final bodyJson = _decodeJson(response.body);
     final errorJson = bodyJson['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw UpdateCurrentUserFailure(error.message);
     }
 
     final dataJson = bodyJson['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw UpdateCurrentUserFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
@@ -167,15 +171,14 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'Avatar upload URL request failed with status '
-        '${response.statusCode}',
+      throw RequestAvatarUploadFailure(
+        'Avatar upload URL request failed with status ${response.statusCode}',
       );
     }
 
     final dynamic decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Expected JSON object response');
+      throw RequestAvatarUploadFailure('Expected JSON object response');
     }
 
     final root = decoded;
@@ -193,7 +196,7 @@ class M3tApiClient {
     final uploadUrl = data?['upload_url'] as String?;
 
     if (key == null || uploadUrl == null) {
-      throw const FormatException('Missing key or upload_url in response');
+      throw RequestAvatarUploadFailure('Missing key or upload_url in response');
     }
 
     return (Uri.parse(uploadUrl), key);
@@ -213,7 +216,7 @@ class M3tApiClient {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
+      throw UploadAvatarFailure(
         'Avatar upload failed with status ${response.statusCode}',
       );
     }
@@ -227,7 +230,7 @@ class M3tApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
+      throw ConfirmAvatarFailure(
         'Confirm avatar failed with status ${response.statusCode}',
       );
     }
@@ -236,12 +239,12 @@ class M3tApiClient {
     final errorJson = bodyJson['error'] as Map<String, dynamic>?;
     if (errorJson != null) {
       final error = ApiError.fromJson(errorJson);
-      throw Exception(error.message);
+      throw ConfirmAvatarFailure(error.message);
     }
 
     final dataJson = bodyJson['data'] as Map<String, dynamic>?;
     if (dataJson == null) {
-      throw const FormatException('Missing data field in response');
+      throw ConfirmAvatarFailure('Missing data field in response');
     }
 
     return User.fromJson(dataJson);
