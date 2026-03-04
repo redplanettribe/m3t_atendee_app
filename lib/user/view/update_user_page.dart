@@ -65,7 +65,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                 title: const Text('Choose from gallery'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  unawaited(_pickImageAndUpload(.gallery));
+                  unawaited(_pickImageAndUpload(ImageSource.gallery));
                 },
               ),
               ListTile(
@@ -73,7 +73,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                 title: const Text('Take photo'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  unawaited(_pickImageAndUpload(.camera));
+                  unawaited(_pickImageAndUpload(ImageSource.camera));
                 },
               ),
             ],
@@ -96,7 +96,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
       }
 
       final path = picked.name.toLowerCase();
-      final contentType = source == .camera
+      final contentType = source == ImageSource.camera
           ? 'image/jpeg'
           : (path.endsWith('.png') ? 'image/png' : 'image/jpeg');
 
@@ -130,7 +130,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          behavior: .floating,
+          behavior: SnackBarBehavior.floating,
           duration: duration ?? const Duration(seconds: 4),
         ),
       );
@@ -174,14 +174,14 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Column(
-                    mainAxisSize: .min,
+            mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
                         onTap: state.updatingAvatar
                             ? null
                             : _showImageSourceBottomSheet,
                         child: Stack(
-                          alignment: .bottomRight,
+                          alignment: Alignment.bottomRight,
                           children: [
                             UserAvatar(user: state.user, radius: 64),
                             if (state.updatingAvatar)
@@ -189,7 +189,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
                                     color: Colors.black26,
-                                    shape: .circle,
+                                    shape: BoxShape.circle,
                                   ),
                                   child: Center(
                                     child: SizedBox(
@@ -226,7 +226,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                         decoration: const InputDecoration(
                           labelText: 'First name',
                         ),
-                        textCapitalization: .words,
+                        textCapitalization: TextCapitalization.words,
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -234,7 +234,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                         decoration: const InputDecoration(
                           labelText: 'Last name',
                         ),
-                        textCapitalization: .words,
+                        textCapitalization: TextCapitalization.words,
                       ),
                       const SizedBox(height: 16),
                       TextField(
