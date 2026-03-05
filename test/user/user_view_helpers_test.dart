@@ -2,7 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3t_attendee/user/user.dart';
+import 'package:m3t_attendee/features/user/user.dart';
 
 void main() {
   group('UserDisplayExtension.initials', () {
