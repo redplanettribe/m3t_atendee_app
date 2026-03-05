@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:m3t_attendee/login/login.dart';
+import 'package:m3t_attendee/features/login/login.dart';
 
 final class LoginForm extends StatelessWidget {
   const LoginForm({super.key});

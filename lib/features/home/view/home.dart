@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m3t_attendee/app/bloc/auth_bloc.dart';
-import 'package:m3t_attendee/user/view/user_avatar_button.dart';
+import 'package:m3t_attendee/features/user/view/user_avatar_button.dart';
 
 final class HomePage extends StatelessWidget {
   const HomePage({super.key});

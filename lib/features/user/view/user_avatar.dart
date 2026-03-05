@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' show BlocBuilder;
-import 'package:m3t_attendee/user/view/user_view_helpers.dart';
+import 'package:m3t_attendee/features/user/view/user_view_helpers.dart';
 
 /// Circular avatar for [user], showing their profile photo or initials
 /// as a fallback.
