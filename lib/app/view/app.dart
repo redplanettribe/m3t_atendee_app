@@ -7,9 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:m3t_attendee/app/bloc/auth_bloc.dart';
 import 'package:m3t_attendee/app/router.dart';
 import 'package:m3t_attendee/app/routes.dart';
-import 'package:m3t_attendee/home/home.dart';
-import 'package:m3t_attendee/login/login.dart';
-import 'package:m3t_attendee/user/user.dart';
+import 'package:m3t_attendee/features/home/home.dart';
+import 'package:m3t_attendee/features/login/login.dart';
+import 'package:m3t_attendee/features/user/user.dart';
 
 // ---------------------------------------------------------------------------
 // App root
