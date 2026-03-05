@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3t_attendee/login/login.dart';
+import 'package:m3t_attendee/features/login/login.dart';
 
 void main() {
   group('LoginEvent', () {

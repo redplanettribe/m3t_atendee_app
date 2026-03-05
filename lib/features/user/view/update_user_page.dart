@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:m3t_attendee/user/bloc/user_cubit.dart';
-import 'package:m3t_attendee/user/view/user_avatar.dart';
+import 'package:m3t_attendee/features/user/bloc/user_cubit.dart';
+import 'package:m3t_attendee/features/user/view/user_avatar.dart';
 
 final class UpdateUserPage extends StatefulWidget {
   const UpdateUserPage({super.key});
@@ -174,7 +174,7 @@ final class _UpdateUserPageState extends State<UpdateUserPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: Column(
-            mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
                         onTap: state.updatingAvatar
