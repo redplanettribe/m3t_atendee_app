@@ -74,14 +74,14 @@ loopback — useful for local development).
 
 ```bash
 # Remote server
-flutter run --dart-define=BASE_URL=https://your-api-host.example.com
+flutter run --dart-define=M3T_API_URL=https://your-api-host.example.com
 
 # Local backend (Android emulator default, no flag needed)
 flutter run
 
 # Production build
-flutter build apk --dart-define=BASE_URL=https://your-api-host.example.com
-flutter build ipa --dart-define=BASE_URL=https://your-api-host.example.com
+flutter build apk --dart-define=M3T_API_URL=https://your-api-host.example.com
+flutter build ipa --dart-define=M3T_API_URL=https://your-api-host.example.com
 ```
 
 The VS Code launch configuration passes the URL via `--dart-define` — just

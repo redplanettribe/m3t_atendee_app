@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:m3t_attendee/app/routes.dart';
+import 'package:m3t_attendee/core/app_config.dart';
 import 'package:m3t_attendee/features/home/bloc/bloc.dart';
 import 'package:m3t_attendee/features/user/view/user_avatar_button.dart';
+import 'package:m3t_attendee/features/user/view/user_view_helpers.dart';
 
 final class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -94,59 +96,87 @@ final class _HomeView extends StatelessWidget {
               itemCount: state.events.length,
               itemBuilder: (context, index) {
                 final event = state.events[index];
+                final thumbnailUrl = event.thumbnailUrl != null &&
+                        event.thumbnailUrl!.isNotEmpty
+                    ? (event.thumbnailUrl!.startsWith('/')
+                        ? '${AppConfig.baseUrl}${event.thumbnailUrl}'
+                        : event.thumbnailUrl!)
+                    : null;
+                final resolvedThumbnailUrl = thumbnailUrl.platformResolved;
                 final metaParts = <String>[
                   if (event.eventCode != null &&
                       event.eventCode!.isNotEmpty)
                     'Code: ${event.eventCode}',
-                  if (event.date != null && event.date!.isNotEmpty)
-                    event.date!,
+                  if (event.startDate != null && event.startDate!.isNotEmpty)
+                    event.startDate!,
                 ];
+                const thumbSize = 96.0;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Card(
                     clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            event.name,
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: thumbSize,
+                          height: thumbSize,
+                          child: resolvedThumbnailUrl != null &&
+                                  resolvedThumbnailUrl.isNotEmpty
+                              ? Image.network(
+                                  resolvedThumbnailUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) =>
+                                      _thumbnailPlaceholder(context),
+                                )
+                              : _thumbnailPlaceholder(context),
+                        ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    event.name,
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (event.description != null &&
+                                      event.description!.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      event.description!,
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                  if (metaParts.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      metaParts.join(' · '),
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
-                          if (event.description != null &&
-                              event.description!.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              event.description!,
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          if (metaParts.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              metaParts.join(' · '),
-                              style: textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
-                  ),
-                );
+                  );
               },
             ),
           );
@@ -154,4 +184,15 @@ final class _HomeView extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _thumbnailPlaceholder(BuildContext context) {
+  return ColoredBox(
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    child: Icon(
+      Icons.event,
+      size: 40,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
 }

@@ -8,17 +8,29 @@ final class RegisteredEventEntity extends Equatable {
     required this.registrationId,
     this.description,
     this.eventCode,
-    this.date,
+    this.startDate,
+    this.durationDays,
+    this.thumbnailUrl,
   });
 
   final String eventId;
   final String name;
   final String? description;
   final String? eventCode;
-  final String? date;
+  final String? startDate;
+  final int? durationDays;
+  final String? thumbnailUrl;
   final String registrationId;
 
   @override
-  List<Object?> get props =>
-      [eventId, name, description, eventCode, date, registrationId];
+  List<Object?> get props => [
+        eventId,
+        name,
+        description,
+        eventCode,
+        startDate,
+        durationDays,
+        thumbnailUrl,
+        registrationId,
+      ];
 }

@@ -15,14 +15,17 @@ class M3tApiClient {
   M3tApiClient({
     http.Client? httpClient,
     String? baseUrl,
+    Uri? objectStoreBaseUrl,
     TokenProvider? tokenProvider,
   }) : _httpClient = httpClient ?? http.Client(),
        _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
+       _objectStoreBaseUrl = objectStoreBaseUrl,
        _tokenProvider = tokenProvider;
 
   final http.Client _httpClient;
   final TokenProvider? _tokenProvider;
   final String _baseUrl;
+  final Uri? _objectStoreBaseUrl;
 
   Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
@@ -209,10 +212,24 @@ class M3tApiClient {
     required List<int> bytes,
     required String contentType,
   }) async {
+    final effectiveUploadUrl = _objectStoreBaseUrl == null
+        ? uploadUrl
+        : uploadUrl.replace(
+            scheme: _objectStoreBaseUrl.scheme,
+            host: _objectStoreBaseUrl.host,
+            port: _objectStoreBaseUrl.hasPort ? _objectStoreBaseUrl.port : null,
+          );
+    final signedHost = uploadUrl.hasPort
+        ? '${uploadUrl.host}:${uploadUrl.port}'
+        : uploadUrl.host;
     final response = await _httpClient.put(
-      uploadUrl,
+      effectiveUploadUrl,
       headers: <String, String>{
         'content-type': contentType,
+        // Presigned S3 URLs frequently include `host` in signed headers, so we
+        // preserve the original host value even when we rewrite the destination
+        // host for emulator/device reachability.
+        'host': signedHost,
       },
       body: bytes,
     );

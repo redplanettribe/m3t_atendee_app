@@ -15,6 +15,7 @@ Future<void> bootstrap() async {
   final apiClient = M3tApiClient(
     tokenProvider: tokenStorage.read,
     baseUrl: AppConfig.baseUrl,
+    objectStoreBaseUrl: Uri.parse(AppConfig.objectStoreUrl),
   );
   final authRepository = AuthRepositoryImpl(
     apiClient: apiClient,

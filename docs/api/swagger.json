@@ -3289,6 +3289,146 @@
                 }
             }
         },
+        "/events/{eventID}/thumbnail": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Confirms the uploaded event thumbnail by storing the object key on the event and returning the updated event. Requires Bearer token. Only the event owner or team members can call this.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Confirm uploaded event thumbnail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID (UUID)",
+                        "name": "eventID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Uploaded thumbnail object key",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ConfirmThumbnailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "data contains the updated event",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.UpdateEventSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "error.code: bad_request",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error.code: unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "error.code: forbidden (not owner or team member)",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error.code: not_found",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error.code: internal_error",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{eventID}/thumbnail/upload-url": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a presigned URL and object key that the client can use to upload an event thumbnail directly to storage. Requires Bearer token. Only the event owner or team members can call this.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Get presigned upload URL for event thumbnail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID (UUID)",
+                        "name": "eventID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "data contains upload_url and key",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.RequestThumbnailUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "error.code: bad_request",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error.code: unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "error.code: forbidden (not owner or team member)",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error.code: not_found",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error.code: internal_error",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/events/{eventID}/tiers": {
             "get": {
                 "security": [
@@ -4044,6 +4184,14 @@
                 }
             }
         },
+        "controllers.ConfirmThumbnailRequest": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
         "controllers.CreateEventRequest": {
             "type": "object",
             "properties": {
@@ -4123,7 +4271,11 @@
                     "type": "string"
                 },
                 "end_time": {
+                    "description": "HH:MM or HH:MM:SS",
                     "type": "string"
+                },
+                "event_day": {
+                    "type": "integer"
                 },
                 "room_id": {
                     "type": "string"
@@ -4135,6 +4287,7 @@
                     }
                 },
                 "start_time": {
+                    "description": "HH:MM or HH:MM:SS",
                     "type": "string"
                 },
                 "tags": {
@@ -4645,6 +4798,17 @@
                 }
             }
         },
+        "controllers.RequestThumbnailUploadResponse": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
         "controllers.SendEventInvitationsRequest": {
             "type": "object",
             "properties": {
@@ -4692,17 +4856,21 @@
         "controllers.UpdateEventRequest": {
             "type": "object",
             "properties": {
-                "date": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
+                },
+                "duration_days": {
+                    "type": "integer"
                 },
                 "location_lat": {
                     "type": "number"
                 },
                 "location_lng": {
                     "type": "number"
+                },
+                "start_date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
                 }
             }
         },
@@ -4817,6 +4985,9 @@
                 "end_time": {
                     "type": "string"
                 },
+                "event_day": {
+                    "type": "integer"
+                },
                 "room_id": {
                     "type": "string"
                 },
@@ -4875,11 +5046,11 @@
                 "created_at": {
                     "type": "string"
                 },
-                "date": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
+                },
+                "duration_days": {
+                    "type": "integer"
                 },
                 "event_code": {
                     "type": "string"
@@ -4897,6 +5068,12 @@
                     "type": "string"
                 },
                 "owner_id": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "thumbnail_url": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -5080,7 +5257,10 @@
                     "type": "string"
                 },
                 "end_time": {
-                    "type": "string"
+                    "$ref": "#/definitions/domain.TimeOfDay"
+                },
+                "event_day": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
@@ -5101,7 +5281,7 @@
                     }
                 },
                 "start_time": {
-                    "type": "string"
+                    "$ref": "#/definitions/domain.TimeOfDay"
                 },
                 "tags": {
                     "description": "Tags are the tags associated with this session. Each tag includes both its ID and name.",
@@ -5206,6 +5386,9 @@
                     "type": "string"
                 }
             }
+        },
+        "domain.TimeOfDay": {
+            "type": "object"
         },
         "domain.User": {
             "type": "object",

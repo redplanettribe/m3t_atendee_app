@@ -53,7 +53,9 @@ final class AttendeeRepositoryImpl implements AttendeeRepository {
               registrationId: item.registration.id,
               description: item.event.description,
               eventCode: item.event.eventCode,
-              date: item.event.date,
+              startDate: item.event.startDate,
+              durationDays: item.event.durationDays,
+              thumbnailUrl: item.event.thumbnailUrl,
             ),
           )
           .toList();
