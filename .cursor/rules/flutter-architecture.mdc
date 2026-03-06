@@ -1,0 +1,49 @@
+---
+description: Layered architecture (presentation, domain, data), dependency direction, feature structure, and DI for this Flutter app.
+alwaysApply: true
+---
+
+# m3t_attendee Architecture
+
+This app uses a **three-layer architecture**: presentation, domain, and data. Dependencies flow **top-down** only.
+
+## Layer Structure
+
+| Layer | Location | Responsibility |
+|-------|----------|----------------|
+| **Presentation** | `lib/` (app, features, core, infrastructure) | UI, routing, BLoC/Cubit, platform adapters (e.g. token storage) |
+| **Domain** | `packages/domain/` | Entities, enums, failures, **repository interfaces** only. No implementations. |
+| **Data** | `packages/auth_repository/`, `packages/m3t_api/` | Repository implementations, API client, API models, mappers |
+
+- **Presentation** depends on **domain** (and on data packages only for wiring in `bootstrap.dart`).
+- **Data** packages depend on **domain** and optionally on each other (e.g. `auth_repository` depends on `m3t_api`).
+- **Domain** has no dependency on other packages or Flutter. It is pure Dart.
+
+## Dependency Rules
+
+- **Packages never depend on `lib/`.** The app depends on packages, not the other way around.
+- **Domain** must not import `auth_repository`, `m3t_api`, or Flutter. Only `equatable` (or similar pure Dart) is allowed.
+- **BLoCs/Cubits** depend on **repository interfaces** from `package:domain/domain.dart`, not on concrete implementations. Implementations are injected in `bootstrap.dart` and provided via `RepositoryProvider`.
+
+## Feature Structure
+
+Each feature lives under `lib/features/<feature_name>/`:
+
+- `bloc/` — `<feature>_bloc.dart`, `<feature>_event.dart`, `<feature>_state.dart` (or Cubit + state only).
+- `view/` — pages and widgets (e.g. `<feature>_page.dart`, form widgets).
+- `<feature>.dart` — barrel file that exports `bloc/` and `view/` (e.g. `export 'bloc/bloc.dart'; export 'view/view.dart';`).
+
+App-wide shell (router, auth BLoC) lives under `lib/app/`.
+
+## Dependency Injection
+
+- **No get_it or injectable.** Dependencies are composed in `bootstrap()` in `lib/bootstrap.dart`.
+- **Order in bootstrap:** Build token storage → API client (with token provider) → repository implementation → `authRepository.initialize()` → `runApp(App(authRepository: ...))`.
+- **In the widget tree:** `App` provides `AuthRepository` via `RepositoryProvider<AuthRepository>.value`. BLoCs/Cubits receive it with `context.read<AuthRepository>()` in their `BlocProvider`/`BlocProvider` `create` callbacks.
+
+## References
+
+- App shell and router: `lib/app/view/app.dart`
+- Bootstrap: `lib/bootstrap.dart`
+- Route constants: `lib/app/routes.dart`
+- Domain repository interface: `packages/domain/lib/src/repositories/auth_repository.dart`

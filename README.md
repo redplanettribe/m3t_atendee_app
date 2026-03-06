@@ -42,16 +42,17 @@ lib/
 ├── app/
 │   ├── bloc/                            # AuthBloc (app-lifetime session)
 │   ├── routes.dart                      # AppRoutes constants
-│   ├── router/                          # GoRouterRefreshStream
+│   ├── router.dart                      # GoRouterRefreshStream
 │   └── view/
-├── login/
-│   ├── bloc/                            # LoginBloc (screen-scoped)
-│   └── view/
-├── user/
-│   ├── bloc/                            # UserCubit
-│   └── view/                            # UserAvatar, UserAvatarButton, ConfigPage, UpdateUserPage
-└── home/
-    └── view/
+└── features/
+    ├── login/
+    │   ├── bloc/                        # LoginBloc (screen-scoped)
+    │   └── view/
+    ├── user/
+    │   ├── bloc/                        # UserCubit
+    │   └── view/                        # UserAvatar, UserAvatarButton, ConfigPage, UpdateUserPage
+    └── home/
+        └── view/
 
 packages/
 ├── domain/          # Pure Dart domain layer

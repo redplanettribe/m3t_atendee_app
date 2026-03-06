@@ -1,0 +1,37 @@
+---
+description: GoRouter setup — route constants in AppRoutes, refreshListenable for auth, redirect logic, nested routes, MaterialApp.router.
+alwaysApply: false
+---
+
+# GoRouter Conventions
+
+When adding or changing navigation or routes in this app, follow these patterns.
+
+## Route Constants
+
+- Define all path constants in **`lib/app/routes.dart`**.
+- Use an **abstract final class** so the class cannot be extended or instantiated: `abstract final class AppRoutes { ... }`.
+- **Full paths** (e.g. `/login`, `/config`) for programmatic navigation: `context.push(AppRoutes.updateUser)`, `context.go(AppRoutes.home)`.
+- **Segment-only** constants (e.g. `update-user`) for nested `GoRoute.path` so parent path is not duplicated. Name them clearly (e.g. `updateUserSegment`).
+- **Never** use raw string literals for routes in the codebase; always use `AppRoutes.*`.
+
+## Router Creation and Lifecycle
+
+- The **GoRouter** is created in the **State** of the widget that owns it (e.g. `_AppViewState`), in `initState()`, and disposed in `dispose()`. Do not create the router as a global or static.
+- Use **MaterialApp.router** with `routerConfig: _router`. Do not use `MaterialApp()` with a `home` and imperative `Navigator` for the main app shell.
+
+## Auth-Reactive Routing
+
+- Use **refreshListenable** so the router reacts to auth changes. This project uses `GoRouterRefreshStream<AuthState>(authBloc.stream)` from `lib/app/router.dart`. It extends `ChangeNotifier` and notifies when the stream emits; pass it as `refreshListenable` to `GoRouter`.
+- **Redirect:** In the router’s `redirect` callback, read the current auth status (e.g. from the same `AuthBloc` used for `refreshListenable`) and the current location (`routerState.matchedLocation`). Return a path string to redirect, or `null` for no redirect.
+- **Auth redirect logic:** Typically: if authenticated and on login path → redirect to home; if unauthenticated and not on login → redirect to login. Use a `switch` on auth status (and optionally location) for clarity.
+
+## Nested Routes
+
+- Group related screens with nested `routes` (e.g. config and update-user: parent path `AppRoutes.config`, child path `AppRoutes.updateUserSegment`). Use the segment constant in the child `GoRoute(path: AppRoutes.updateUserSegment, ...)`.
+
+## References
+
+- `lib/app/routes.dart` — route constants
+- `lib/app/view/app.dart` — router creation, redirect, routes, MaterialApp.router
+- `lib/app/router.dart` — GoRouterRefreshStream

@@ -1,0 +1,49 @@
+---
+description: Testing conventions — bloc_test, mocktail, test layout, buildBloc helper, assertions, and package tests use test not flutter_test.
+globs: "**/*_test.dart"
+alwaysApply: false
+---
+
+# Testing Conventions
+
+When writing or editing tests in this project, follow these patterns.
+
+## Test Layout
+
+- Mirror source layout: `test/<feature>/bloc/<feature>_bloc_test.dart`, `test/<feature>/bloc/<feature>_event_test.dart`, `test/<feature>/bloc/<feature>_state_test.dart`.
+- App-level: `test/app/bloc/`, `test/infrastructure/`, etc.
+- Package tests: under each package’s `test/` (e.g. `packages/domain/test/`, `packages/auth_repository/test/`).
+
+## BLoC / Cubit Tests
+
+- Use **bloc_test**: `blocTest<BlocType, StateType>('description', build: ..., act: ..., expect: ..., verify: ...)`.
+- **Mocks:** Use **mocktail**. Define **private** mocks so they don’t leak: `class _MockAuthRepository extends Mock implements AuthRepository {}`.
+- **Build helper:** Define a `buildBloc()` (or `buildCubit()`) function that creates the bloc with injected mocks; use it as `build: buildBloc` in `blocTest`.
+- **setUp / tearDown:** Keep them **inside** the same `group()` that uses them (e.g. inside `group('AuthBloc', () { ... })`). In tearDown, cancel streams/controllers (e.g. `StreamController.close()`).
+- **Stubbing:** `when(() => mock.method()).thenReturn(...)` for sync, `when(() => mock.method()).thenAnswer((_) async => ...)` for async.
+- **Verification:** Use `verify(() => mock.method()).called(1)` (or other counts) in the `verify` callback of `blocTest` when you care about side effects.
+- **Initial state:** Use `seed: () => const SomeState(...)` when the test needs a non-default initial state.
+- **Expectations:** Prefer `expect: () => const [State1(...), State2(...)]` with const when possible. Use matchers (e.g. `equals(...)`) in plain `test()`.
+
+## Event and State Unit Tests
+
+- **Events:** Test value equality and `props` (e.g. `expect(EventName().props, equals(<Object?>[...]));`).
+- **States:** Test equality, `props`, and `copyWith` (same object when no args; replaces only provided fields; use sentinel behavior for nullable fields if applicable).
+
+## General Test Rules
+
+- Every test must **assert** (e.g. `expect(...)`, `verify(...)`). No tests that only run code without assertions.
+- Use **matchers** (e.g. `equals`, `isTrue`, `hasLength`) instead of raw comparisons in `expect`.
+- **One scenario per test.** Keep test names descriptive (e.g. “emits [loading, success] when login succeeds”).
+- **No shared mutable state** between tests. Create mocks and subjects in `setUp` (or inside the test), not at the top level of the group.
+
+## Package Tests
+
+- In `packages/*`, use the **`test`** package (`import 'package:test/test.dart';`), **not** `flutter_test`. This keeps packages runnable without the Flutter SDK.
+
+## References
+
+- `test/app/bloc/auth_bloc_test.dart`
+- `test/login/bloc/login_bloc_test.dart`
+- `test/user/user_cubit_test.dart`
+- `packages/auth_repository/test/auth_repository_test.dart`

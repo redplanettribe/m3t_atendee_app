@@ -1,0 +1,41 @@
+---
+description: Generate or edit Dart API/DTO models from JSON using json_serializable, Equatable, snake_case, and copyWith; run build_runner after changes.
+alwaysApply: false
+---
+
+# Dart API Models from JSON
+
+When creating or modifying data models that map to JSON (e.g. API DTOs in `m3t_api`), follow this project’s conventions.
+
+## Location
+
+- API request/response models: `packages/m3t_api/lib/src/models/`.
+- One file per model (e.g. `user.dart`, `login_response.dart`). Barrel: `models/models.dart`.
+
+## Conventions
+
+- **Class:** `final class <Name> extends Equatable` (Dart 3 style).
+- **Serialization:** `json_annotation` + `json_serializable`. Use `part '<name>.g.dart';` and generate with:
+  - `dart run build_runner build --delete-conflicting-outputs`
+- **Field names:** API uses **snake_case**. Use `@JsonSerializable(fieldRename: FieldRename.snake)` so Dart fields stay camelCase and JSON keys are snake_case. Avoid per-field `@JsonKey` unless you need a one-off rename or custom converter.
+- **Constructors:** Prefer `const` and `required` for non-nullable fields; optional positional/named for nullable.
+- **fromJson / toJson:** `factory ModelName.fromJson(Map<String, dynamic> json) => _$ModelNameFromJson(json);` and `Map<String, dynamic> toJson() => _$ModelNameToJson(this);`.
+- **Equatable:** Override `List<Object?> get props` with all fields.
+- **copyWith:** Manual implementation. For nullable fields, use a sentinel if you need to distinguish “omit” from “set to null” (see BLoC state in `bloc-conventions`). Otherwise `copyWith({ Type? field }) => ModelName(..., field: field ?? this.field, ...);`.
+
+## Dependencies
+
+- In `packages/m3t_api/pubspec.yaml`: `json_annotation`, `equatable`; dev: `build_runner`, `json_serializable`.
+- No Flutter; models are pure Dart.
+
+## After Editing
+
+- Run code generation from the package or repo root:
+  - `dart run build_runner build --delete-conflicting-outputs`
+- Commit the `.g.dart` files.
+
+## References
+
+- `docs/api/swagger.json` — backend API spec; use definitions/schemas for request/response field names and types when creating new models.
+- `packages/m3t_api/lib/src/models/user.dart`
+- `packages/m3t_api/lib/src/models/login_response.dart`

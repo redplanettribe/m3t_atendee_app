@@ -1,0 +1,40 @@
+---
+description: Packages are pure Dart — no Flutter. Domain interfaces, data implementations, API models, mappers, ports.
+globs: "packages/**"
+alwaysApply: false
+---
+
+# Packages: Pure Dart Only
+
+Code under `packages/` must **not** depend on Flutter or `dart:ui`. This keeps domain and data logic testable and reusable outside the UI.
+
+## No Flutter in Packages
+
+- Do **not** import `package:flutter/...` or `dart:ui` in any package.
+- Platform-specific behavior (e.g. secure storage) is abstracted behind **ports** (interfaces). Implementations live in `lib/infrastructure/` in the app and are injected from `bootstrap.dart`.
+
+## Domain Package (`packages/domain/`)
+
+- **Repository contracts:** `abstract interface class <Name>Repository` with method signatures only. No implementation, no HTTP/storage details.
+- **Entities:** Plain classes extending `Equatable`; use domain types (e.g. `AuthUser`, `AuthStatus`), not API DTOs.
+- **Failures:** Typed failure classes for the domain (e.g. `AuthFailure` with subtypes or factory constructors like `AuthFailure.invalidCode()`).
+- **Enums:** Domain enums (e.g. `AuthStatus`) live in `domain/lib/src/enums/`.
+- Dependencies: only pure Dart (e.g. `equatable`). No `m3t_api`, no `auth_repository`, no Flutter.
+
+## Data Packages (`auth_repository`, `m3t_api`)
+
+- **Implementations:** `final class <Name>Impl implements <Interface>` from domain. Constructor-inject dependencies (e.g. `M3tApiClient`, `TokenStorage`).
+- **API client (`m3t_api`):** Uses `http` package. Exposes typed methods; throws specific exceptions per endpoint (e.g. `RequestLoginCodeFailure`). Uses a `TokenProvider` (e.g. `Future<String?> Function()`) for auth headers.
+- **API models:** In `m3t_api/lib/src/models/`. Use `@JsonSerializable(fieldRename: FieldRename.snake)`, `Equatable`, `part '<name>.g.dart'`, `fromJson`/`toJson`, manual `copyWith`. No Flutter.
+- **Mappers:** In the repository package. Extension methods on API model classes, e.g. `extension UserMapper on User { AuthUser toDomain() => ... }`. Convert API types (including date strings) to domain entities.
+- **Ports:** Abstract interfaces for platform or external concerns (e.g. `TokenStorage` in `auth_repository`). Implementations are provided by the app (e.g. `FlutterSecureTokenStorage` in `lib/infrastructure/`).
+
+## Package Tests
+
+- Use the **`test`** package (`import 'package:test/test.dart';`), **not** `flutter_test`, so tests run without the Flutter SDK in packages.
+
+## References
+
+- Domain: `packages/domain/lib/src/repositories/auth_repository.dart`, `entities/auth_user.dart`, `failures/auth_failure.dart`
+- Data: `packages/auth_repository/lib/src/auth_repository.dart`, `mappers/user_mapper.dart`, `ports/token_storage.dart`
+- API: `packages/m3t_api/lib/src/m3t_api_client.dart`, `models/user.dart`
