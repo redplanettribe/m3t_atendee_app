@@ -32,3 +32,4 @@ Add a new backend API endpoint to the app: extend `M3tApiClient` in `packages/m3
 - [ ] New method on `M3tApiClient` with envelope handling and typed exception
 - [ ] Repository method (domain interface + implementation) that calls client and maps exceptions to domain failures
 - [ ] BLoC/Cubit uses repository only (no direct client use)
+- [ ] Project builds and has no errors

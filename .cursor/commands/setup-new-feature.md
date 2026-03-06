@@ -34,3 +34,4 @@ Set up a new feature in this Flutter app following the project's layered archite
 - [ ] View exports via `view/view.dart`; feature barrel exports bloc and view
 - [ ] If new screen: route constant in `AppRoutes` and `GoRoute` in app router
 - [ ] No business logic in widgets; no direct use of `M3tApiClient` in lib/ (use repository interfaces)
+- [ ] Project builds and has no errors

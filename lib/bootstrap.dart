@@ -1,3 +1,4 @@
+import 'package:attendee_repository/attendee_repository.dart';
 import 'package:auth_repository/auth_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:m3t_api/m3t_api.dart';

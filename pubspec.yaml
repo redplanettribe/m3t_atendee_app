@@ -8,6 +8,8 @@ environment:
   sdk: '>=3.10.0 <4.0.0'
 
 dependencies:
+  attendee_repository:
+    path: packages/attendee_repository
   auth_repository:
     path: packages/auth_repository
   domain:

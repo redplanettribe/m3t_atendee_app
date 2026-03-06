@@ -23,8 +23,9 @@ final class RegisterForEventState extends Equatable {
     return RegisterForEventState(
       eventCode: eventCode ?? this.eventCode,
       status: status ?? this.status,
-      errorMessage:
-          errorMessage == _sentinel ? this.errorMessage : errorMessage as String?,
+      errorMessage: errorMessage == _sentinel
+          ? this.errorMessage
+          : errorMessage as String?,
     );
   }
 

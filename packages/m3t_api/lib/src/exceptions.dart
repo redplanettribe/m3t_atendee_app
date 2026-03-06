@@ -83,3 +83,19 @@ final class RegisterForEventByCodeFailure implements Exception {
   @override
   String toString() => 'RegisterForEventByCodeFailure($message)';
 }
+
+/// Thrown when fetching the current user's registered events fails.
+final class GetMyRegisteredEventsFailure implements Exception {
+  GetMyRegisteredEventsFailure(
+    this.message, {
+    this.statusCode,
+    this.errorCode,
+  });
+
+  final String message;
+  final int? statusCode;
+  final String? errorCode;
+
+  @override
+  String toString() => 'GetMyRegisteredEventsFailure($message)';
+}

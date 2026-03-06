@@ -1,4 +1,6 @@
 import 'package:domain/src/entities/event_registration.dart';
+import 'package:domain/src/entities/registered_event.dart';
+import 'package:domain/src/failures/get_my_registered_events_failure.dart';
 import 'package:domain/src/failures/registration_failure.dart';
 
 /// Repository for attendee operations (e.g. registering for events).
@@ -8,4 +10,15 @@ abstract interface class AttendeeRepository {
   ///
   /// Throws [RegistrationFailure] on error.
   Future<EventRegistrationEntity> registerForEventByCode(String eventCode);
+
+  /// Returns the list of events the current user is registered for.
+  /// Optional [status]: active, past, or all (default all).
+  /// Optional [page] and [pageSize] for pagination.
+  ///
+  /// Throws [GetMyRegisteredEventsFailure] on error.
+  Future<List<RegisteredEventEntity>> getMyRegisteredEvents({
+    String? status,
+    int? page,
+    int? pageSize,
+  });
 }

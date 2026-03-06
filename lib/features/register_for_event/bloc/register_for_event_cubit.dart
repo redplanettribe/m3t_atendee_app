@@ -34,7 +34,12 @@ final class RegisterForEventCubit extends Cubit<RegisterForEventState> {
       return;
     }
 
-    emit(state.copyWith(status: RegisterForEventStatus.loading, errorMessage: null));
+    emit(
+      state.copyWith(
+        status: RegisterForEventStatus.loading,
+        errorMessage: null,
+      ),
+    );
 
     try {
       await _attendeeRepository.registerForEventByCode(code);
