@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   static const home = '/';
   static const config = '/config';
   static const updateUser = '/config/update-user';
+  static const registerForEvent = '/register-for-event';
 
   /// Bare path segments — used in nested [GoRoute] definitions only.
   static const updateUserSegment = 'update-user';

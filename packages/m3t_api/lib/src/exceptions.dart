@@ -67,3 +67,19 @@ final class ConfirmAvatarFailure implements Exception {
   @override
   String toString() => 'ConfirmAvatarFailure($message)';
 }
+
+/// Thrown when registering for an event by code fails.
+final class RegisterForEventByCodeFailure implements Exception {
+  RegisterForEventByCodeFailure(
+    this.message, {
+    this.statusCode,
+    this.errorCode,
+  });
+
+  final String message;
+  final int? statusCode;
+  final String? errorCode;
+
+  @override
+  String toString() => 'RegisterForEventByCodeFailure($message)';
+}

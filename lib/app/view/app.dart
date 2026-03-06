@@ -9,6 +9,7 @@ import 'package:m3t_attendee/app/router.dart';
 import 'package:m3t_attendee/app/routes.dart';
 import 'package:m3t_attendee/features/home/home.dart';
 import 'package:m3t_attendee/features/login/login.dart';
+import 'package:m3t_attendee/features/register_for_event/register_for_event.dart';
 import 'package:m3t_attendee/features/user/user.dart';
 
 // ---------------------------------------------------------------------------
@@ -17,15 +18,23 @@ import 'package:m3t_attendee/features/user/user.dart';
 
 /// Root widget. Owns the repository and BLoC composition.
 final class App extends StatelessWidget {
-  const App({required AuthRepository authRepository, super.key})
-    : _authRepository = authRepository;
+  const App({
+    required AuthRepository authRepository,
+    required AttendeeRepository attendeeRepository,
+    super.key,
+  })  : _authRepository = authRepository,
+        _attendeeRepository = attendeeRepository;
 
   final AuthRepository _authRepository;
+  final AttendeeRepository _attendeeRepository;
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<AuthRepository>.value(
-      value: _authRepository,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<AuthRepository>.value(value: _authRepository),
+        RepositoryProvider<AttendeeRepository>.value(value: _attendeeRepository),
+      ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider<AuthBloc>(
@@ -84,6 +93,10 @@ final class _AppViewState extends State<_AppView> {
         GoRoute(
           path: AppRoutes.home,
           builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.registerForEvent,
+          builder: (context, state) => const RegisterForEventPage(),
         ),
         GoRoute(
           path: AppRoutes.config,

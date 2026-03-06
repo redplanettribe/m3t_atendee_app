@@ -19,6 +19,7 @@ Future<void> bootstrap() async {
     apiClient: apiClient,
     tokenStorage: tokenStorage,
   );
+  final attendeeRepository = AttendeeRepositoryImpl(apiClient: apiClient);
 
   try {
     await authRepository.initialize();
@@ -31,5 +32,8 @@ Future<void> bootstrap() async {
     debugPrintStack(stackTrace: stackTrace);
   }
 
-  runApp(App(authRepository: authRepository));
+  runApp(App(
+    authRepository: authRepository,
+    attendeeRepository: attendeeRepository,
+  ));
 }

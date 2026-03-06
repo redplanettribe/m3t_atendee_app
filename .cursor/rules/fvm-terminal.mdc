@@ -1,0 +1,33 @@
+---
+description: Use FVM for all Flutter/Dart terminal commands; project Flutter version 3.41.3.
+alwaysApply: true
+---
+
+# FVM and Terminal Usage
+
+This project uses **FVM** (Flutter Version Management). All Flutter and Dart commands in the terminal must run through FVM so the correct Flutter version is used.
+
+## Flutter Version
+
+- **Project Flutter version:** `3.41.3`
+
+## Terminal Commands
+
+- **Always use `fvm`** for Flutter and Dart commands. Do not run `flutter` or `dart` directly.
+- **Run Flutter:** `fvm flutter <args>` (e.g. `fvm flutter run`, `fvm flutter pub get`, `fvm flutter test`)
+- **Run Dart:** `fvm dart <args>` (e.g. `fvm dart run build_runner build`)
+
+## Adding Dependencies
+
+- **Install packages via FVM** to avoid versioning and compatibility issues:
+  - Use **`fvm flutter add <package_name>`** (not `flutter pub add` or editing `pubspec.yaml` by hand for new deps).
+- This keeps dependencies resolved against the project’s pinned Flutter version (3.41.3).
+
+## Summary
+
+| Do | Don’t |
+|----|--------|
+| `fvm flutter run` | `flutter run` |
+| `fvm flutter pub get` | `flutter pub get` |
+| `fvm flutter add some_package` | `flutter pub add` or manual `pubspec.yaml` edits for new deps |
+| `fvm dart run build_runner build` | `dart run build_runner build` |
