@@ -7,27 +7,35 @@ part 'register_for_event_state.dart';
 
 final class RegisterForEventCubit extends Cubit<RegisterForEventState> {
   RegisterForEventCubit({required AttendeeRepository attendeeRepository})
-      : _attendeeRepository = attendeeRepository,
-        super(const RegisterForEventState());
+    : _attendeeRepository = attendeeRepository,
+      super(const RegisterForEventState());
 
   final AttendeeRepository _attendeeRepository;
 
+  /// Updates the event code as the user types.
+  ///
+  /// Normalizes to uppercase and trims whitespace. Resets status to
+  /// initial and clears any previous error message.
   void eventCodeChanged(String value) {
     emit(
       state.copyWith(
-        eventCode: value,
-        status: RegisterForEventStatus.initial,
+        eventCode: value.trim().toUpperCase(),
+        status: .initial,
         errorMessage: null,
       ),
     );
   }
 
+  /// Validates and submits the event code via [AttendeeRepository].
+  ///
+  /// Emits loading while the request is in flight, success on completion,
+  /// or failure with a user-facing error message on [RegistrationFailure].
   Future<void> submit() async {
-    final code = state.eventCode.trim().toUpperCase();
+    final code = state.eventCode;
     if (code.length != 4) {
       emit(
         state.copyWith(
-          status: RegisterForEventStatus.failure,
+          status: .failure,
           errorMessage: 'Please enter a 4-character event code.',
         ),
       );
@@ -36,19 +44,19 @@ final class RegisterForEventCubit extends Cubit<RegisterForEventState> {
 
     emit(
       state.copyWith(
-        status: RegisterForEventStatus.loading,
+        status: .loading,
         errorMessage: null,
       ),
     );
 
     try {
       await _attendeeRepository.registerForEventByCode(code);
-      emit(state.copyWith(status: RegisterForEventStatus.success));
+      emit(state.copyWith(status: .success));
     } on RegistrationFailure catch (failure, stackTrace) {
       addError(failure, stackTrace);
       emit(
         state.copyWith(
-          status: RegisterForEventStatus.failure,
+          status: .failure,
           errorMessage: failure.toDisplayMessage(),
         ),
       );
@@ -56,8 +64,8 @@ final class RegisterForEventCubit extends Cubit<RegisterForEventState> {
       addError(error, stackTrace);
       emit(
         state.copyWith(
-          status: RegisterForEventStatus.failure,
-          errorMessage: RegistrationUnknownError().toDisplayMessage(),
+          status: .failure,
+          errorMessage: const RegistrationUnknownError().toDisplayMessage(),
         ),
       );
     }

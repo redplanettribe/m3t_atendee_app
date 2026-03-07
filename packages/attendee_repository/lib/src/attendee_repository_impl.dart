@@ -1,11 +1,18 @@
+import 'package:attendee_repository/src/local/registered_events_local_data_source.dart';
+import 'package:attendee_repository/src/mappers/event_registration_mapper.dart';
+import 'package:attendee_repository/src/mappers/registered_event_item_mapper.dart';
 import 'package:domain/domain.dart';
 import 'package:m3t_api/m3t_api.dart' as m3t;
 
 final class AttendeeRepositoryImpl implements AttendeeRepository {
-  AttendeeRepositoryImpl({required m3t.M3tApiClient apiClient})
-      : _apiClient = apiClient;
+  AttendeeRepositoryImpl({
+    required m3t.M3tApiClient apiClient,
+    required RegisteredEventsLocalDataSource localDataSource,
+  }) : _apiClient = apiClient,
+       _localDataSource = localDataSource;
 
   final m3t.M3tApiClient _apiClient;
+  final RegisteredEventsLocalDataSource _localDataSource;
 
   @override
   Future<EventRegistrationEntity> registerForEventByCode(
@@ -13,23 +20,25 @@ final class AttendeeRepositoryImpl implements AttendeeRepository {
   ) async {
     try {
       final registration = await _apiClient.registerForEventByCode(eventCode);
-      return EventRegistrationEntity(
-        id: registration.id,
-        eventId: registration.eventId,
-      );
+      return registration.toDomain();
     } on m3t.RegisterForEventByCodeFailure catch (e) {
       if (e.statusCode == 404 || e.errorCode == 'not_found') {
-        throw EventNotFound();
+        throw const EventNotFound();
       }
+      // 400: server-side validation failure — distinct from client-side
+      // InvalidEventCode (format guard), which is never reached here because
+      // the cubit and formatter already enforce the 4-char alphanumeric rule.
       if (e.statusCode == 400 || e.errorCode == 'bad_request') {
-        throw InvalidEventCode();
+        throw const RegistrationBadRequest();
       }
+      // 401: auth failure — not a network error; maps to unknown until a
+      // dedicated RegistrationUnauthorized domain type is added.
       if (e.statusCode == 401 || e.errorCode == 'unauthorized') {
-        throw RegistrationNetworkError();
+        throw const RegistrationUnknownError();
       }
-      throw RegistrationUnknownError();
+      throw const RegistrationUnknownError();
     } on Exception catch (_) {
-      throw RegistrationNetworkError();
+      throw const RegistrationNetworkError();
     }
   }
 
@@ -45,20 +54,10 @@ final class AttendeeRepositoryImpl implements AttendeeRepository {
         page: page,
         pageSize: pageSize,
       );
-      return response.items
-          .map(
-            (item) => RegisteredEventEntity(
-              eventId: item.event.id,
-              name: item.event.name,
-              registrationId: item.registration.id,
-              description: item.event.description,
-              eventCode: item.event.eventCode,
-              startDate: item.event.startDate,
-              durationDays: item.event.durationDays,
-              thumbnailUrl: item.event.thumbnailUrl,
-            ),
-          )
-          .toList();
+
+      final entities = response.items.map((item) => item.toDomain()).toList();
+      await _localDataSource.write(entities);
+      return entities;
     } on m3t.GetMyRegisteredEventsFailure catch (e) {
       if (e.statusCode == 401 || e.errorCode == 'unauthorized') {
         throw GetMyRegisteredEventsUnauthorized();
@@ -67,8 +66,20 @@ final class AttendeeRepositoryImpl implements AttendeeRepository {
         throw GetMyRegisteredEventsUnknown();
       }
       throw GetMyRegisteredEventsNetworkError();
+    } on FormatException catch (e, stackTrace) {
+      // start_date missing or malformed — server contract violation, not a
+      // network error. Surface as unknown so the cubit emits a failure state
+      // rather than silently swallowing a bad payload.
+      Error.throwWithStackTrace(GetMyRegisteredEventsUnknown(), stackTrace);
     } on Exception catch (_) {
       throw GetMyRegisteredEventsNetworkError();
     }
   }
+
+  @override
+  List<RegisteredEventEntity> getCachedRegisteredEvents() =>
+      _localDataSource.read();
+
+  @override
+  Future<void> clearCache() => _localDataSource.clear();
 }

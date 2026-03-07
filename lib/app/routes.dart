@@ -12,6 +12,7 @@ abstract final class AppRoutes {
   /// Full absolute paths — used for navigation calls.
   static const login = '/login';
   static const home = '/';
+  static const myEvents = '/my-events';
   static const config = '/config';
   static const updateUser = '/config/update-user';
   static const registerForEvent = '/register-for-event';
