@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-import 'package:m3t_api/src/exceptions.dart';
-import 'package:m3t_api/src/models/api_error.dart';
+import 'package:m3t_api/src/data_sources/attendee_data_source.dart';
+import 'package:m3t_api/src/data_sources/auth_data_source.dart';
+import 'package:m3t_api/src/data_sources/user_data_source.dart';
+import 'package:m3t_api/src/http/api_http_executor.dart';
 import 'package:m3t_api/src/models/event_registration.dart';
 import 'package:m3t_api/src/models/list_my_registered_events_response.dart';
 import 'package:m3t_api/src/models/login_response.dart';
@@ -11,356 +11,77 @@ import 'package:m3t_api/src/models/user.dart';
 /// Signature for a callback that returns the stored auth token (or null).
 typedef TokenProvider = Future<String?> Function();
 
+/// Facade that delegates every API call to a typed per-domain data source.
+///
+/// Call sites are unchanged — all method signatures are preserved exactly.
+/// Infrastructure (HTTP client, base URL, token provider) is shared via
+/// [ApiHttpExecutor] and injected into each data source at construction time.
 class M3tApiClient {
   M3tApiClient({
     http.Client? httpClient,
     String? baseUrl,
     Uri? objectStoreBaseUrl,
     TokenProvider? tokenProvider,
-  }) : _httpClient = httpClient ?? http.Client(),
-       _baseUrl = baseUrl ?? 'http://10.0.2.2:8080',
-       _objectStoreBaseUrl = objectStoreBaseUrl,
-       _tokenProvider = tokenProvider;
-
-  final http.Client _httpClient;
-  final TokenProvider? _tokenProvider;
-  final String _baseUrl;
-  final Uri? _objectStoreBaseUrl;
-
-  Uri _uri(String path) => Uri.parse('$_baseUrl$path');
-
-  Map<String, String> get _jsonHeaders => {
-    'content-type': 'application/json',
-  };
-
-  Future<Map<String, String>> _authHeaders() async {
-    final headers = Map<String, String>.of(_jsonHeaders);
-    final token = await _tokenProvider?.call();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
-  }
-
-  Future<void> requestLoginCode(String email) async {
-    final response = await _httpClient.post(
-      _uri('/auth/login/request'),
-      headers: _jsonHeaders,
-      body: jsonEncode(<String, String>{'email': email}),
+  }) {
+    final executor = ApiHttpExecutor(
+      httpClient: httpClient ?? http.Client(),
+      baseUrl: baseUrl ?? 'http://10.0.2.2:8080',
+      objectStoreBaseUrl: objectStoreBaseUrl,
+      tokenProvider: tokenProvider,
     );
-
-    if (response.statusCode != 200) {
-      throw RequestLoginCodeFailure(
-        'Request failed with status ${response.statusCode}',
-      );
-    }
-
-    final body = _decodeJson(response.body);
-    final errorJson = body['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw RequestLoginCodeFailure(error.message);
-    }
+    _auth = AuthDataSource(executor: executor);
+    _user = UserDataSource(executor: executor);
+    _attendee = AttendeeDataSource(executor: executor);
   }
+
+  late final AuthDataSource _auth;
+  late final UserDataSource _user;
+  late final AttendeeDataSource _attendee;
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+
+  Future<void> requestLoginCode(String email) => _auth.requestLoginCode(email);
 
   Future<LoginResponse> verifyLoginCode({
     required String email,
     required String code,
-  }) async {
-    final response = await _httpClient.post(
-      _uri('/auth/login/verify'),
-      headers: _jsonHeaders,
-      body: jsonEncode(<String, String>{
-        'email': email,
-        'code': code,
-      }),
-    );
+  }) => _auth.verifyLoginCode(email: email, code: code);
 
-    if (response.statusCode != 200) {
-      throw VerifyLoginCodeFailure(
-        'Request failed with status ${response.statusCode}',
-      );
-    }
+  // ── User ─────────────────────────────────────────────────────────────────
 
-    final body = _decodeJson(response.body);
-    final errorJson = body['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw VerifyLoginCodeFailure(error.message);
-    }
+  Future<User> getCurrentUser() => _user.getCurrentUser();
 
-    final dataJson = body['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw VerifyLoginCodeFailure('Missing data field in response');
-    }
+  Future<User> updateCurrentUser({String? name, String? lastName}) =>
+      _user.updateCurrentUser(name: name, lastName: lastName);
 
-    return LoginResponse.fromJson(dataJson);
-  }
-
-  Future<User> getCurrentUser() async {
-    final response = await _httpClient.get(
-      _uri('/users/me'),
-      headers: await _authHeaders(),
-    );
-
-    if (response.statusCode != 200) {
-      throw GetCurrentUserFailure(
-        'Request failed with status ${response.statusCode}',
-      );
-    }
-
-    final body = _decodeJson(response.body);
-    final errorJson = body['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw GetCurrentUserFailure(error.message);
-    }
-
-    final dataJson = body['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw GetCurrentUserFailure('Missing data field in response');
-    }
-
-    return User.fromJson(dataJson);
-  }
-
-  Future<User> updateCurrentUser({
-    String? name,
-    String? lastName,
-  }) async {
-    if (name == null && lastName == null) {
-      throw ArgumentError(
-        'At least one of name or lastName must be provided.',
-      );
-    }
-
-    final body = <String, dynamic>{};
-    if (name != null) {
-      body['name'] = name;
-    }
-    if (lastName != null) {
-      body['last_name'] = lastName;
-    }
-
-    final response = await _httpClient.patch(
-      _uri('/users/me'),
-      headers: await _authHeaders(),
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode != 200) {
-      throw UpdateCurrentUserFailure(
-        'Request failed with status ${response.statusCode}',
-      );
-    }
-
-    final bodyJson = _decodeJson(response.body);
-    final errorJson = bodyJson['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw UpdateCurrentUserFailure(error.message);
-    }
-
-    final dataJson = bodyJson['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw UpdateCurrentUserFailure('Missing data field in response');
-    }
-
-    return User.fromJson(dataJson);
-  }
-
-  Future<(Uri uploadUrl, String key)> requestAvatarUploadUrl() async {
-    final response = await _httpClient.post(
-      _uri('/users/me/avatar/upload-url'),
-      headers: await _authHeaders(),
-    );
-
-    if (response.statusCode != 200) {
-      throw RequestAvatarUploadFailure(
-        'Avatar upload URL request failed with status ${response.statusCode}',
-      );
-    }
-
-    final dynamic decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, dynamic>) {
-      throw RequestAvatarUploadFailure('Expected JSON object response');
-    }
-
-    final root = decoded;
-
-    // Some endpoints wrap responses in a { data, error } envelope.
-    final Map<String, dynamic>? data;
-    if (root.containsKey('key') && root.containsKey('upload_url')) {
-      data = root;
-    } else {
-      final nested = root['data'];
-      data = nested is Map<String, dynamic> ? nested : null;
-    }
-
-    final key = data?['key'] as String?;
-    final uploadUrl = data?['upload_url'] as String?;
-
-    if (key == null || uploadUrl == null) {
-      throw RequestAvatarUploadFailure('Missing key or upload_url in response');
-    }
-
-    return (Uri.parse(uploadUrl), key);
-  }
+  Future<(Uri uploadUrl, String key)> requestAvatarUploadUrl() =>
+      _user.requestAvatarUploadUrl();
 
   Future<void> uploadAvatarBytes({
     required Uri uploadUrl,
     required List<int> bytes,
     required String contentType,
-  }) async {
-    final effectiveUploadUrl = _objectStoreBaseUrl == null
-        ? uploadUrl
-        : uploadUrl.replace(
-            scheme: _objectStoreBaseUrl.scheme,
-            host: _objectStoreBaseUrl.host,
-            port: _objectStoreBaseUrl.hasPort ? _objectStoreBaseUrl.port : null,
-          );
-    final signedHost = uploadUrl.hasPort
-        ? '${uploadUrl.host}:${uploadUrl.port}'
-        : uploadUrl.host;
-    final response = await _httpClient.put(
-      effectiveUploadUrl,
-      headers: <String, String>{
-        'content-type': contentType,
-        // Presigned S3 URLs frequently include `host` in signed headers, so we
-        // preserve the original host value even when we rewrite the destination
-        // host for emulator/device reachability.
-        'host': signedHost,
-      },
-      body: bytes,
-    );
+  }) => _user.uploadAvatarBytes(
+    uploadUrl: uploadUrl,
+    bytes: bytes,
+    contentType: contentType,
+  );
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw UploadAvatarFailure(
-        'Avatar upload failed with status ${response.statusCode}',
-      );
-    }
-  }
+  Future<User> confirmAvatar({required String key}) =>
+      _user.confirmAvatar(key: key);
 
-  Future<User> confirmAvatar({required String key}) async {
-    final response = await _httpClient.put(
-      _uri('/users/me/avatar'),
-      headers: await _authHeaders(),
-      body: jsonEncode(<String, String>{'key': key}),
-    );
+  // ── Attendee ─────────────────────────────────────────────────────────────
 
-    if (response.statusCode != 200) {
-      throw ConfirmAvatarFailure(
-        'Confirm avatar failed with status ${response.statusCode}',
-      );
-    }
+  Future<EventRegistration> registerForEventByCode(String eventCode) =>
+      _attendee.registerForEventByCode(eventCode);
 
-    final bodyJson = _decodeJson(response.body);
-    final errorJson = bodyJson['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw ConfirmAvatarFailure(error.message);
-    }
-
-    final dataJson = bodyJson['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw ConfirmAvatarFailure('Missing data field in response');
-    }
-
-    return User.fromJson(dataJson);
-  }
-
-  /// Registers the authenticated user for the event identified by [eventCode]
-  /// (4 characters). Idempotent: returns 200 if already registered, 201 if new.
-  Future<EventRegistration> registerForEventByCode(String eventCode) async {
-    final response = await _httpClient.post(
-      _uri('/attendee/registrations'),
-      headers: await _authHeaders(),
-      body: jsonEncode(<String, String>{'event_code': eventCode}),
-    );
-
-    final body = _decodeJson(response.body);
-    final errorJson = body['error'] as Map<String, dynamic>?;
-    final apiError = errorJson != null ? ApiError.fromJson(errorJson) : null;
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw RegisterForEventByCodeFailure(
-        apiError?.message ??
-            'Request failed with status ${response.statusCode}',
-        statusCode: response.statusCode,
-        errorCode: apiError?.code,
-      );
-    }
-    if (apiError != null) {
-      throw RegisterForEventByCodeFailure(
-        apiError.message,
-        errorCode: apiError.code,
-      );
-    }
-
-    final dataJson = body['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw RegisterForEventByCodeFailure('Missing data field in response');
-    }
-
-    return EventRegistration.fromJson(dataJson);
-  }
-
-  /// Returns the list of events the authenticated user is registered for.
-  /// Optional [status]: active, past, or all (default all).
-  /// Optional [page] and [pageSize] for pagination.
   Future<ListMyRegisteredEventsResponse> getMyRegisteredEvents({
     String? status,
     int? page,
     int? pageSize,
-  }) async {
-    final query = <String, String>{};
-    if (status != null && status.isNotEmpty) query['status'] = status;
-    if (page != null) query['page'] = page.toString();
-    if (pageSize != null) query['page_size'] = pageSize.toString();
-    final uri = query.isEmpty
-        ? _uri('/attendee/events')
-        : _uri('/attendee/events').replace(queryParameters: query);
-
-    final response = await _httpClient.get(
-      uri,
-      headers: await _authHeaders(),
-    );
-
-    if (response.statusCode != 200) {
-      final body = _decodeJson(response.body);
-      final errorJson = body['error'] as Map<String, dynamic>?;
-      final apiError = errorJson != null ? ApiError.fromJson(errorJson) : null;
-      throw GetMyRegisteredEventsFailure(
-        apiError?.message ??
-            'Request failed with status ${response.statusCode}',
-        statusCode: response.statusCode,
-        errorCode: apiError?.code,
-      );
-    }
-
-    final body = _decodeJson(response.body);
-    final errorJson = body['error'] as Map<String, dynamic>?;
-    if (errorJson != null) {
-      final error = ApiError.fromJson(errorJson);
-      throw GetMyRegisteredEventsFailure(
-        error.message,
-        errorCode: error.code,
-      );
-    }
-
-    final dataJson = body['data'] as Map<String, dynamic>?;
-    if (dataJson == null) {
-      throw GetMyRegisteredEventsFailure('Missing data field in response');
-    }
-
-    return ListMyRegisteredEventsResponse.fromJson(dataJson);
-  }
-
-  Map<String, dynamic> _decodeJson(String source) {
-    final decoded = jsonDecode(source);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-
-    throw const FormatException('Expected JSON object response');
-  }
+  }) => _attendee.getMyRegisteredEvents(
+    status: status,
+    page: page,
+    pageSize: pageSize,
+  );
 }
