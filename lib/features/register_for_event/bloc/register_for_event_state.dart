@@ -5,7 +5,7 @@ enum RegisterForEventStatus { initial, loading, success, failure }
 final class RegisterForEventState extends Equatable {
   const RegisterForEventState({
     this.eventCode = '',
-    this.status = RegisterForEventStatus.initial,
+    this.status = .initial,
     this.errorMessage,
   });
 
