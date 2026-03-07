@@ -21,4 +21,11 @@ abstract interface class AttendeeRepository {
     int? page,
     int? pageSize,
   });
+
+  /// Returns the last cached list synchronously.
+  /// Returns an empty list if no cache exists. Never throws.
+  List<RegisteredEventEntity> getCachedRegisteredEvents();
+
+  /// Clears local cache.
+  Future<void> clearCache();
 }
