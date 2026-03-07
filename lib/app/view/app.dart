@@ -10,6 +10,8 @@ import 'package:m3t_attendee/app/routes.dart';
 import 'package:m3t_attendee/features/home/home.dart';
 import 'package:m3t_attendee/features/login/login.dart';
 import 'package:m3t_attendee/features/register_for_event/register_for_event.dart';
+import 'package:m3t_attendee/features/registered_events/cubit/registered_events_cubit.dart';
+import 'package:m3t_attendee/features/registered_events/view/registered_events_page.dart';
 import 'package:m3t_attendee/features/user/user.dart';
 
 // ---------------------------------------------------------------------------
@@ -22,8 +24,8 @@ final class App extends StatelessWidget {
     required AuthRepository authRepository,
     required AttendeeRepository attendeeRepository,
     super.key,
-  })  : _authRepository = authRepository,
-        _attendeeRepository = attendeeRepository;
+  }) : _authRepository = authRepository,
+       _attendeeRepository = attendeeRepository;
 
   final AuthRepository _authRepository;
   final AttendeeRepository _attendeeRepository;
@@ -49,8 +51,24 @@ final class App extends StatelessWidget {
               return cubit;
             },
           ),
+          BlocProvider<RegisteredEventsCubit>(
+            create: (context) {
+              final cubit = RegisteredEventsCubit(
+                attendeeRepository: context.read(),
+              );
+              unawaited(cubit.initialize());
+              return cubit;
+            },
+          ),
         ],
-        child: const _AppView(),
+        child: BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state.status == .unauthenticated) {
+              unawaited(context.read<RegisteredEventsCubit>().clear());
+            }
+          },
+          child: const _AppView(),
+        ),
       ),
     );
   }
@@ -82,8 +100,8 @@ final class _AppViewState extends State<_AppView> {
         final isOnLogin = routerState.matchedLocation == AppRoutes.login;
 
         return switch (authStatus) {
-          AuthStatus.authenticated when isOnLogin => AppRoutes.home,
-          AuthStatus.unauthenticated when !isOnLogin => AppRoutes.login,
+          .authenticated when isOnLogin => AppRoutes.home,
+          .unauthenticated when !isOnLogin => AppRoutes.login,
           _ => null,
         };
       },
@@ -95,6 +113,17 @@ final class _AppViewState extends State<_AppView> {
         GoRoute(
           path: AppRoutes.home,
           builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.myEvents,
+          builder: (context, state) {
+            final initialTab = switch (state.extra) {
+              final RegisteredEventsTab tab => tab,
+              _ => null,
+            };
+
+            return RegisteredEventsPage(initialTab: initialTab);
+          },
         ),
         GoRoute(
           path: AppRoutes.registerForEvent,
@@ -125,12 +154,12 @@ final class _AppViewState extends State<_AppView> {
     return MaterialApp.router(
       title: 'm3t Attendee',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
       darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
+        colorScheme: .fromSeed(
           seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
+          brightness: .dark,
         ),
       ),
       routerConfig: _router,
