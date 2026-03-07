@@ -1,28 +1,15 @@
 import 'package:domain/domain.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
-
-/// Platform-aware image URL resolution.
-///
-/// On Android emulators `localhost` is not routable — this extension swaps it
-/// for `10.0.2.2` (the host loopback alias) automatically.
-extension PlatformImageUrlExtension on String? {
-  /// Returns the URL resolved for the current platform, or the original value
-  /// when no adjustment is needed.
-  String? get platformResolved {
-    final url = this;
-    if (url == null || url.isEmpty) return url;
-    if (defaultTargetPlatform == .android && url.contains('localhost')) {
-      return url.replaceFirst('localhost', '10.0.2.2');
-    }
-    return url;
-  }
-}
+import 'package:m3t_attendee/core/media/media_url_resolver.dart';
 
 /// User display utilities derived directly from domain data.
 extension UserDisplayExtension on AuthUser? {
+  /// Profile picture URL resolved for the current app runtime.
+  String? get resolvedProfilePictureUrl =>
+      MediaUrlResolver.resolveAppUrl(this?.profilePictureUrl);
+
   /// Up-to-two-character initials for display in avatars.
   ///
-  /// Priority: first + last name → first name alone → email local-part.
+  /// Priority: first + last name -> first name alone -> email local-part.
   /// Returns `'?'` when no data is available.
   String get initials {
     final user = this;

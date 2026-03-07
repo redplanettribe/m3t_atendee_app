@@ -20,7 +20,7 @@ final class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final resolvedUrl = user?.profilePictureUrl.platformResolved;
+    final resolvedUrl = user.resolvedProfilePictureUrl;
     final diameter = radius * 2;
     final style = _initialsStyle(theme);
 
