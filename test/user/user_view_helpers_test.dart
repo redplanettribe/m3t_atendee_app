@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:m3t_attendee/core/app_config.dart';
 import 'package:m3t_attendee/features/user/user.dart';
 
 void main() {
@@ -58,47 +59,78 @@ void main() {
     });
   });
 
-  group('PlatformImageUrlExtension.platformResolved', () {
-    test('returns null for null input', () {
-      const String? url = null;
-      expect(url.platformResolved, isNull);
+  group('UserDisplayExtension.resolvedProfilePictureUrl', () {
+    test('returns null for null user', () {
+      const AuthUser? user = null;
+      expect(user.resolvedProfilePictureUrl, isNull);
     });
 
-    test('returns empty string for empty input', () {
-      expect(''.platformResolved, '');
+    test('returns null for empty profile picture URL', () {
+      const user = AuthUser(id: '1', email: 'x@y.com', profilePictureUrl: '');
+      expect(user.resolvedProfilePictureUrl, isNull);
+    });
+
+    test('resolves relative paths against AppConfig.baseUrl', () {
+      const user = AuthUser(
+        id: '1',
+        email: 'x@y.com',
+        profilePictureUrl: '/avatar.jpg',
+      );
+
+      final expectedUrl = Uri.parse(
+        AppConfig.baseUrl,
+      ).resolve('/avatar.jpg').toString();
+
+      expect(user.resolvedProfilePictureUrl, expectedUrl);
     });
 
     test('returns URL unchanged on non-Android platforms', () {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
 
-      const url = 'http://localhost:8080/avatar.jpg';
+      const user = AuthUser(
+        id: '1',
+        email: 'x@y.com',
+        profilePictureUrl: 'http://localhost:8080/avatar.jpg',
+      );
+
       // On iOS, localhost must not be rewritten.
-      expect(url.platformResolved, url);
+      expect(
+        user.resolvedProfilePictureUrl,
+        'http://localhost:8080/avatar.jpg',
+      );
     });
 
     test('returns URL unchanged when localhost not present', () {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
 
-      const url = 'https://cdn.example.com/avatar.jpg';
-      expect(url.platformResolved, url);
+      const user = AuthUser(
+        id: '1',
+        email: 'x@y.com',
+        profilePictureUrl: 'https://cdn.example.com/avatar.jpg',
+      );
+
+      expect(
+        user.resolvedProfilePictureUrl,
+        'https://cdn.example.com/avatar.jpg',
+      );
     });
 
     test('rewrites localhost to 10.0.2.2 on Android emulator', () {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
 
-      const url = 'http://localhost:8080/avatar.jpg';
-      expect(url.platformResolved, 'http://10.0.2.2:8080/avatar.jpg');
-    });
+      const user = AuthUser(
+        id: '1',
+        email: 'x@y.com',
+        profilePictureUrl: 'http://localhost:8080/avatar.jpg',
+      );
 
-    test('does not rewrite non-localhost URLs on Android', () {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      addTearDown(() => debugDefaultTargetPlatformOverride = null);
-
-      const url = 'https://cdn.example.com/avatar.jpg';
-      expect(url.platformResolved, url);
+      expect(
+        user.resolvedProfilePictureUrl,
+        'http://10.0.2.2:8080/avatar.jpg',
+      );
     });
   });
 }
